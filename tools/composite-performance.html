@@ -1,0 +1,11 @@
+<!doctype html><title>Composite performance</title><pre id="out">Measuring…</pre><canvas id="view"></canvas><script type="module">
+import * as THREE from '../vendor/three-r186/three.module.js';
+import {createAnalogPass} from '../analog.js?v=22';
+const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('view')});renderer.setSize(960,600,false);
+const texture=new THREE.DataTexture(new Uint8Array(await(await fetch('./fixtures/runtime/source.rgba')).arrayBuffer()),720,480,THREE.RGBAFormat);texture.needsUpdate=true;
+const pass=createAnalogPass(renderer,{videoSource:texture});pass.controls.automaticHum=false;
+let start=null,last=null,frames=0,intervals=[];
+function tick(now){if(start===null)start=now;if(last!==null)intervals.push(now-last);last=now;frames++;pass.render(now/1000);
+if(now-start<10000)requestAnimationFrame(tick);else{intervals.sort((a,b)=>a-b);document.getElementById('out').textContent=JSON.stringify({renderFPS:frames*1000/(now-start),signalFPS:pass.stats.signalFPS,p50ms:intervals[Math.floor(intervals.length*.5)],p95ms:intervals[Math.floor(intervals.length*.95)],readMS:pass.stats.readMilliseconds,workerMS:pass.stats.receiverMilliseconds,error:pass.stats.error},null,2);}}
+requestAnimationFrame(tick);
+</script>

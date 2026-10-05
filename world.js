@@ -3008,7 +3008,7 @@ function forest() {
 const STREET = [-104.5, -14];  // on the grass by the curb, beside the mailbox
 const LAMP_COLOR = 0xffdcae;                    // warm bulbs (0xffffff for plain white)                       // where the streetlight stands, in feet
 
-function shadowed(light, size = 512, far = 40) {
+export function shadowed(light, size = 512, far = 40) {
   light.castShadow = true;
   light.shadow.mapSize.set(size, size);
   light.shadow.camera.near = 0.25;

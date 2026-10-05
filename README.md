@@ -21,7 +21,7 @@ Then open http://localhost:8000. Edit a file, refresh the page.
 ## Controls
 
 Left / right arrow keys, the number pad (4 / 6), A / D, or the on-screen
-arrows switch cams. **E** or the `emp` button fires the EMP at the room
+arrows switch cams. **B** or the `emp` button fires the EMP at the room
 you're watching. **N** or the `nv` button toggles night vision. Enter or Space starts. Esc goes back to the title.
 
 ## The EMP
@@ -315,9 +315,9 @@ walls, a red front door, and so on. They're all in `MAT` near the top of
 
 Like a real security cam: switching it on turns on an infrared light at
 the camera that floods the room it's watching, and the picture goes
-bright, green and grainy with a dark vignette. Lamps blow out and
-ghoul1's pupils glow. Strength is `IR_STRENGTH` and `NV_GAIN` in
-`main.js`; the green look is `.night` in `crazyhouse.css`.
+bright and monochrome. Lamps blow out and ghoul1's pupils glow.
+Strength is `IR_STRENGTH` and `NV_GAIN` in `main.js`; source video
+becomes monochrome before composite encoding.
 
 ## ghoul1
 
@@ -424,3 +424,199 @@ The browser console also gets `crazyhouse.scene`, `.camera`, `.CAMS`,
    `git remote add upstream https://github.com/jakeworldwide/crazyhouse.git`,
    then whenever you want them: `git pull upstream main`.
 5. Made something worth sharing back? Open a pull request on GitHub.
+
+## Live composite camera view
+
+The scene and ghost render at display resolution, then use Composite Lab's normal NTSC
+encoder: 525 lines, two interlaced fields, 910 samples/line, exactly 14.318181818
+MS/s, equalizing/broad vertical-sync pulses, horizontal sync, blanking and
+nine-cycle -U burst. The receiver reconstructs at display width with 480 lines. Source filtering uses adjustable
+Blackman filters (Lab profile: 49 taps, 4.2 MHz Y; 1.3 MHz U/V), 7.5 IRE setup, voltage
+units, U/V modulation, and 32-sample causal latency as a flat Lab connection.
+
+`composite-receiver.js` ports the **normal** Lab receiver: horizontal and vertical
+acquisition, adaptive 50% slicer, timing tracking, burst-phase tracking, and
+back-porch clamp. The decoder uses Lab's notch/optional field comb and chroma
+filter/color killer. Exported receiver settings also configure amplifier,
+saturation, bias, noise, slew, bandwidth and decoder controls. The channel's
+finite exponential convolution is evaluated with an equivalent sliding recurrence,
+verified against Lab's actual output, rather than a different filter model.
+
+The GPU encodes the mixed waveform. Readback uses an asynchronous pixel-pack
+buffer/fence; a dedicated worker processes the receiver while the main thread
+remains responsive. The source picture and decoded view update at monitor
+refresh, independently of the 29.97 Hz NTSC frame clock. Receiver state advances
+on that signal clock; there are no decorative scanlines or scripted picture warps. Tone mapping uses
+Three.js ACES to convert scene radiance into source video levels.
+
+At `?debug`, `crazyhouse.analog.controls` exposes `receiverOverrides.bandwidth`,
+`noise`, and `interference`. Noise defaults off.
+Interference adds a continuous oscillator to the waveform before sync
+recovery and decoding. Set `controls.injection` to another Three.js waveform texture and
+`controls.injectionGain` to its voltage mixing gain; red represents signal
+voltage with the same scanline layout. Set injection to null to disconnect.
+Use `?debug&interference=0.7` to inspect steady signal interference.
+
+### Mains injection key
+
+Hold W to inject 60 Hz mains voltage (±0.25 V in Lab voltage units).
+Release to disconnect; hold Shift to double its amplitude. In debug free
+camera mode, W belongs to movement. `controls.testGain` scales the injected
+hum. There are no Q/E/R/T test generators.
+
+Mains hum also injects automatically for random 1–5 second stretches,
+separated by random 1–5 second quiet gaps. Set
+`crazyhouse.analog.controls.automaticHum = false` to disable scheduling;
+holding W still injects mains hum manually.
+
+Merged remote color, glass/windows, EMP, night vision, and debug features.
+B fires EMP (the button still works).
+In debug free-camera mode, W and Shift belong to movement. Night mode uses
+the IR lamp, exposure, and monochrome encoding, without CSS grain/vignette.
+
+Automatic hum uses 15% of the manual W amplitude (±0.0375 Lab
+voltage). `crazyhouse.analog.controls.automaticHumGain` adjusts this ratio;
+manual W remains at full amplitude.
+
+The `?debug` panel has a **bypass composite** toggle. Bypass renders the
+same scene render target through a clean presentation shader, skipping encoding,
+sync recovery, and decoding. The game starts with composite bypassed.
+The kitchen TV faces 45° toward the living room; its glow follows the angle.
+
+Source Y/U/V is bandwidth-limited before modulation using the exposed filter
+parameters. Receiver channel bandwidth defaults off; the user-selected slew
+limit remains active before sync detection and demodulation. FIR weights are calculated once on the
+CPU and uploaded as shader uniforms. `node tools/check-analog.mjs` checks
+DC preservation, passbands, carrier rejection, clean sync recovery, and
+six uniform-color round trips (maximum channel error below 2.5%).
+The kitchen TV itself no longer adds decorative scanlines or picture warp.
+
+The NTSC scene renders at the display's drawing-buffer resolution, then enters
+its fixed 720×480 encoder once. The receiver reconstructs horizontally at display
+width directly from the waveform, avoiding a second 720-pixel image enlargement.
+Vertical output remains 480 lines; NTSC luma/chroma bandwidth limits remain intact.
+
+The defaults are the user's Safari settings: 3 MHz luma, 1.3 MHz chroma,
+3 encoder taps, 33 decoder taps, 1.5 channel gain, 1.1 V/µs slew, line comb and
+clamp enabled, color killer and automatic hum disabled, nearest encoder/output
+sampling, linear waveform sampling, and display-resolution rendering/reconstruction.
+
+Composite bypass uses the same scene and ghost render targets, then displays the
+clean scene through a precompiled presentation shader. `setComposite(enabled)`
+changes only the presentation state; it allocates no buffers and does not wait
+for the receiver worker. Enabling displays the cached composite immediately;
+fresh decoding follows asynchronously at the receiver's processing rate.
+
+## Live signal parameters
+
+With `?debug`, open **signals…**. Its separate window exposes encoder luma/chroma
+cutoffs and FIR tap counts, chroma amplitude and black setup, decoder chroma
+cutoff/taps and notch spacing, line comb, clamp, color killer, sync threshold and
+tracking gains, receiver clock offset, channel cutoff/gain/bias/headroom/noise/slew,
+intermittent hum and oscillator gains, scene resolution scale, receiver output
+width and source/waveform/output interpolation. Changes apply live to the signal
+or its actual sampling stages. A cutoff of 0 bypasses that filter. Tap counts are
+odd and bounded by the existing shader kernels, so edits do not compile shaders.
+
+Receiver edits explicitly override the recording's corresponding settings.
+**reset signal parameters** clears those overrides and restores the existing
+encoder/sampling settings; **show parameters as JSON** exposes the current values
+for copying. Changes are temporary debug-session settings. The normal game keeps
+its existing defaults. The signal raster/carrier clock stays NTSC for Lab compatibility.
+
+## Designing recorded interferers in Composite Lab
+
+Open the updated native Composite Lab app at
+`/Users/jacksonlevine/Documents/Codex/2026-09-30/cou/outputs/CompositeLab`.
+In **Connections**, check **Record** beside one or more connections, enter
+the duration (default 30 seconds), leave **Game export (continuous NTSC signal)**
+enabled, then **Record selected…** and choose a folder. Recording runs in real
+time and stops automatically; **Stop recording** saves a partial recording.
+Every selected connection is captured after port selection, EQ, delay and level,
+before the destination mixer. Patch a mixer into another mixer to export its
+output. Edits are locked while recording, but live footage continues.
+
+Game export runs a separate engine using Lab's unchanged normal encoder and
+receiver, at four samples/carrier. It writes contiguous 525-line blocks on a
+sample clock and preserves receiver parameters/source settings in the manifest.
+Normal Lab preview, output, virtual camera, and original raw export are untouched.
+In NTSC mode, the game uses the receiver settings to decode the sum of its base signal and the
+recorded voltages. Source drift and offsets are present in the waveform itself.
+The original optional raw export preserves its original native sample rate and
+wall-clock block timestamps. Legacy 480-line clips remain readable, but do not
+contain the vertical/interlaced timing of the normal Lab model.
+
+In Crazyhouse with `?debug`, open **signals…**, choose **load signal recording
+folder…**, and select the entire folder. Choose one track or mix all tracks, toggle
+playback, and adjust gain. The window reports game render fps and decoded-view fps separately, GPU readback,
+receiver-worker time, and buffer stalls.
+
+A separate worker validates and mixes recorded voltages. Playback primes about
+0.7 seconds of lookahead, keeps at most 28 blocks, and allows four concurrent
+loads. Both preceding and following guard samples must be present before a
+waveform is submitted. If storage cannot keep up, the simulation pauses and
+holds its decoded view with an explicit buffering indication; it does not replace
+missing waveform data with zero or skip forward. The sample stream wraps across
+recording boundaries; a finite recording's end-to-start edit can still cause a
+physical waveform discontinuity. Corrupt/missing files stop playback with an error.
+
+Use `?signal=signals/recordings/smooth-cover-ntsc-30s/manifest.json&signalGain=0.15`
+for the local smooth 30 fps test footage, recorded from the existing local Lab
+video. It includes explicit source drift of +79 ppm and offset of 0.37 line,
+recorded by the actual Lab encoder. These are source-clock parameters, not screen
+warps. Camera updates and waveform block counts use independent pacing clocks.
+This clip contains 900 full NTSC frames (30.03 seconds) so no frame is cut short.
+Raw recordings are ignored by Git; 30 seconds is about 1.72 GB per connection.
+
+The format is `composite-lab-signal`, version 1, `float32-le`. New game exports
+have `raster: game-ntsc-525`, `voltageScale: 1`, `linesPerFrame: 525`, contiguous
+sample-clock timestamps, and optional `receiverParameters` / `sourceSettings`.
+Each track folder contains `000000.f32`, etc., each exactly
+`525 * samplesPerLine * 4` bytes. Native legacy exports retain their voltage scale.
+
+Run `node tools/check-signal-clip.mjs` and `node tools/check-analog.mjs` for
+format/playback and waveform tests. The analog test takes the native validation
+output directory as an optional argument. Run the native `--self-test --test-output
+/tmp/composite-full-validation` first, then `node tools/check-composite-receiver.mjs`
+for cross-implementation clean/mixed timing, burst phase, clamp, and decoder checks.
+
+`node tools/check-signal-stream.mjs /tmp/composite-full-validation` tests sustained
+streaming with 100 ms artificial read latency and checks the optimized channel
+against Metal. `tools/composite-parity.html` checks the **actual game GPU pipeline**
+against normal Lab decoded pixels for clean and independently drifting mixed
+sources. Generate its ignored runtime fixtures by copying `source.rgba`,
+`game-{clean,mixed}-output-{0,1,2}.rgba`, and `interference-{0,1,2}.f32` from the
+native self-test directory into `tools/fixtures/runtime/`, then serve the page.
+
+The NTSC sample clock does not cap display refresh. The current game picture is
+encoded and decoded again on each available monitor refresh; repeated views of
+one NTSC frame restore that frame's initial receiver state rather than falsely
+advancing the analog clock. Two bounded asynchronous readbacks overlap GPU fence
+polling with the next refresh. Four voltage samples pack into each RGBA pixel,
+reducing readback bandwidth by four without reducing sample precision. Source
+and chroma FIR coefficients are precomputed; waveform interpolation uses hardware
+linear filtering except across packed scanline boundaries.
+
+`node tools/check-preview-refresh.mjs /tmp/composite-full-validation` verifies
+that repeated display refreshes preserve Lab's receiver state and subsequent
+frame results. `tools/composite-performance.html` measures render and decoded
+view rates, median and 95th-percentile frame intervals, and asynchronous timings.
+
+Game exports center-crop the normal 4:3 camera raster to its middle 360 rows,
+then resample to 480 rows before the NTSC encoder, filling the game's 16:9 view.
+This does not stretch voltage samples, sync pulses, or carrier frequencies.
+Normal Lab preview, virtual camera, and non-game raw export retain their framing.
+The game starts clip playback on its NTSC two-frame carrier-phase boundary; only the drift and
+phase offsets designed into the recorded waveform remain. Older letterboxed
+recordings need to be re-exported to remove their baked-in bars.
+
+NTSC mode uses Lab's line-comb receiver as its default luma/chroma separator.
+The simple three-tap notch removed most fine luma contrast below the carrier:
+a GPU sinusoidal test measures only 17% retained contrast at 2.5 MHz, versus
+80% with the line comb. The picture remains 480 lines and encoder/chroma
+bandwidths stay unchanged. This is signal separation, without an image
+sharpening pass or brightness boost. Imported recordings keep their exported
+receiver settings, including an explicit `comb: false`.
+
+`tools/composite-visibility.html` compares both receivers on identical ramp and
+sinusoidal input and verifies brightness and horizontal contrast retention.

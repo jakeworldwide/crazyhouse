@@ -1,0 +1,39 @@
+<!doctype html><meta charset="utf-8"><title>Composite Lab GPU parity</title>
+<style>body{background:#111;color:#ddd;font:14px monospace}canvas{width:720px;height:480px}pre{white-space:pre-wrap}</style>
+<h1>Actual game GPU pipeline vs normal Composite Lab</h1><pre id="result">Running…</pre><canvas id="view"></canvas>
+<script type="module">
+import * as THREE from '../vendor/three-r186/three.module.js';
+import {createAnalogPass,GAME_SIGNAL} from '../analog.js?v=26';
+import {SignalClip} from '../signal-clip.js?v=7';
+const result=document.getElementById('result'),root='./fixtures/runtime/';
+const read=async name=>{const r=await fetch(root+name);if(!r.ok)throw new Error(`${name}: ${r.status}`);return r.arrayBuffer();};
+try{
+ const video=new THREE.DataTexture(new Uint8Array(await read('source.rgba')),720,480,THREE.RGBAFormat);video.needsUpdate=true;
+ const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('view')});renderer.setSize(720,480,false);
+ const reports=[];
+ for(const mixed of [false,true]){
+  let resolveFrame,frameDone;
+  const pass=createAnalogPass(renderer,{videoSource:video,onFrame:({target})=>{const pixels=new Uint8Array(720*480*4);renderer.readRenderTargetPixels(target,0,0,720,480,pixels);resolveFrame(pixels);}});
+  // Explicit Lab profile: game defaults are the user's tuned Safari settings.
+  Object.assign(pass.controls,{automaticHum:false,lumaMHz:4.2,sourceTaps:49,sourceLinear:true,outputLinear:true});
+  Object.assign(pass.controls.receiverOverrides,{comb:false,gain:1,slew:0,colorKiller:true});pass.setSize(720,480);
+  if(mixed){const period=525*910/GAME_SIGNAL.sampleRate;
+   const manifest={format:'composite-lab-signal',version:1,encoding:'float32-le',raster:'game-ntsc-525',sampleRate:GAME_SIGNAL.sampleRate,samplesPerLine:910,linesPerFrame:525,samplesPerFrame:525*910,voltageScale:1,duration:3*period,tracks:[{id:'test',label:'Native mixed source'}],frames:[0,1,2].map(index=>({index,timestamp:index*period}))};
+   const clip=new SignalClip(manifest,p=>read(`interference-${Number(p.split('/')[1].split('.')[0])}.f32`));await clip.prime();clip.gain=1;pass.setClip(clip);clip.started=0;
+  }
+  for(let frame=0;frame<3;frame++){
+   frameDone=new Promise(resolve=>resolveFrame=resolve);pass.render(frame*525*910/GAME_SIGNAL.sampleRate+(frame?1e-7:0));
+   const actual=await frameDone,expected=new Uint8Array(await read(`game-${mixed?'mixed':'clean'}-output-${frame}.rgba`));
+   let total=0,count=0,worst=0;
+   for(let y=0;y<480;y++)for(let x=0;x<720;x++)for(let c=0;c<3;c++){
+    const gx=x;
+    const a=actual[((479-y)*720+gx)*4+c],b=expected[(y*720+x)*4+c],e=Math.abs(a-b);total+=e;count++;worst=Math.max(worst,e);
+   }
+   const mean=total/count;reports.push(`${mixed?'mixed':'clean'} frame ${frame}: mean ${mean.toFixed(3)} / 255, max ${worst}`);
+   result.textContent=reports.join('\n');
+   if(mean>1.5)throw new Error('Actual GPU output diverges from normal Lab');
+  }
+ }
+ result.textContent+='\nPASS';
+}catch(error){result.textContent+='\nFAIL: '+error.message;console.error(error);}
+</script>

@@ -1,0 +1,32 @@
+<!doctype html><meta charset="utf-8"><title>Composite receiver visibility</title>
+<style>body{background:#151515;color:#ddd;font:16px monospace}canvas{width:720px;max-width:48vw}pre{white-space:pre-wrap}</style><h1>Same signal: notch receiver vs line-comb receiver</h1><pre id="out">Measuring actual GPU output…</pre><canvas id="notch"></canvas><canvas id="comb"></canvas>
+<script type="module">
+import * as THREE from '../vendor/three-r186/three.module.js';
+import {createAnalogPass} from '../analog.js?v=26';
+const W=720,H=480,bytes=new Uint8Array(W*H*4),freqs=[0,1,2.5,3.5];
+for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+ const band=Math.floor(y/120),value=band===0?Math.round(x/719*255):Math.round(128+90*Math.cos(2*Math.PI*freqs[band]*52.655*x/W));
+ const i=(y*W+x)*4;bytes[i]=bytes[i+1]=bytes[i+2]=value;bytes[i+3]=255;
+}
+const video=new THREE.DataTexture(bytes,W,H,THREE.RGBAFormat);video.needsUpdate=true;
+const reports=[];
+for(const comb of [false,true]){
+ const renderer=new THREE.WebGLRenderer({canvas:document.getElementById(comb?'comb':'notch')});renderer.setSize(W,H,false);
+ let done;const complete=new Promise(resolve=>done=resolve);
+ const pass=createAnalogPass(renderer,{videoSource:video,receiverParameters:{comb},onFrame:({target})=>{
+  const pixels=new Uint8Array(W*H*4);renderer.readRenderTargetPixels(target,0,0,W,H,pixels);done(pixels);
+ }});Object.assign(pass.controls,{automaticHum:false,lumaMHz:4.2,sourceTaps:49,sourceLinear:true,outputLinear:true});Object.assign(pass.controls.receiverOverrides,{gain:1,slew:0,colorKiller:true});pass.setSize(W,H);pass.render(0);
+ const pixels=await complete;pass.render(0);
+ const gray=(x,y)=>{const i=((H-1-y)*W+x)*4;return .299*pixels[i]+.587*pixels[i+1]+.114*pixels[i+2];};
+ const metrics={decoder:comb?'line comb':'three-tap notch',rampMeanError:0,contrastGain:{}};
+ for(let x=30;x<690;x++)metrics.rampMeanError+=Math.abs(gray(x,60)-bytes[(60*W+x)*4]);metrics.rampMeanError/=660;
+ for(let band=1;band<4;band++){
+  const frequency=freqs[band],y=band*120+60;let re=0,im=0,sourceRe=0,sourceIm=0;
+  for(let x=32;x<688;x++){const a=2*Math.PI*frequency*52.655*x/W,co=Math.cos(a),si=Math.sin(a);re+=(gray(x,y)-128)*co;im+=(gray(x,y)-128)*si;sourceRe+=(bytes[(y*W+x)*4]-128)*co;sourceIm+=(bytes[(y*W+x)*4]-128)*si;}
+  metrics.contrastGain[frequency+'MHz']=Math.hypot(re,im)/Math.hypot(sourceRe,sourceIm);
+ }
+ reports.push(metrics);document.getElementById('out').textContent=reports.map(r=>`${r.decoder}: brightness error ${r.rampMeanError.toFixed(3)} / 255; retained contrast: `+Object.entries(r.contrastGain).map(([f,g])=>`${f} ${(100*g).toFixed(1)}%`).join(', ')).join('\n');
+ }
+if(reports.some(r=>r.rampMeanError>1)||reports[1].contrastGain['2.5MHz']<.7||reports[1].contrastGain['2.5MHz']<4*reports[0].contrastGain['2.5MHz'])throw new Error('Brightness or luma-detail regression');
+document.getElementById('out').textContent+='\nPASS: flat-field brightness preserved; line comb recovers luma detail.';
+</script>

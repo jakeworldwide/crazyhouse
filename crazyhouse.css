@@ -182,17 +182,6 @@ canvas {
   filter: drop-shadow(0 0 2px #000);
 }
 
-/* ─── switching cams: a quick drop to black ─── */
-.cut-flash {
-  position: absolute;
-  inset: 0;
-  background: #000;
-  opacity: 0;
-  pointer-events: none;
-}
-.cut .cut-flash { animation: cut 0.22s steps(3, jump-none); }
-@keyframes cut { from { opacity: 1; } to { opacity: 0; } }
-
 /* ─── no WebGL ──────────────────────────────── */
 .no-gl-msg {
   display: none;
@@ -241,32 +230,8 @@ canvas {
   0% { opacity: 0.55; } 20% { opacity: 0; } 40% { opacity: 0.3; } 60% { opacity: 0; } 80% { opacity: 0.12; } 100% { opacity: 0; }
 }
 
-/* ─── night vision ──────────────────────────── */
-/* The camera's own infrared light does the real work (main.js); this
-   just makes it look like an IR feed: green, grainy, vignetted. */
-.night canvas {
-  filter: grayscale(1) sepia(1) hue-rotate(52deg) saturate(2.4) contrast(1.15) brightness(1.05);
-}
-.nv-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  display: none;
-  background:
-    radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.75) 100%),
-    var(--grain) repeat;
-  background-size: 100% 100%, 160px 160px;
-  mix-blend-mode: normal;
-  animation: grain 0.4s steps(4) infinite;
-}
-.night .nv-layer { display: block; }
-@keyframes grain {
-  0%   { background-position: 0 0, 0 0; }
-  25%  { background-position: 0 0, -37px 21px; }
-  50%  { background-position: 0 0, 53px -44px; }
-  75%  { background-position: 0 0, -18px -63px; }
-  100% { background-position: 0 0, 0 0; }
-}
+/* Night mode uses the camera IR lamp and monochrome source encoding. */
+.nv-layer { display: none; }
 
 .nv {
   position: absolute;
@@ -327,6 +292,46 @@ canvas {
   color: #bbb;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+/* The signal playground stays collapsed independently of the camera debugger. */
+.signal-launcher {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 50;
+  padding: 5px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(0, 0, 0, 0.82);
+  color: #fff;
+  font: 12px/1.35 -apple-system, system-ui, sans-serif;
+  cursor: pointer;
+}
+.signal-launcher[hidden], .signal-window:not([open]) { display: none; }
+.signal-window {
+  left: auto;
+  right: 10px;
+  margin: 0;
+  width: min(300px, calc(100vw - 44px));
+  max-height: calc(100vh - 44px);
+  overflow: auto;
+}
+.signal-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.signal-window select { width: 100%; min-width: 0; }
+
+.signal-settings details { margin-top: 12px; border-top: 1px solid #555; padding-top: 8px; }
+.signal-settings summary { cursor: pointer; margin-bottom: 8px; }
+.signal-param { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; }
+.signal-param input[type="number"] { width: 76px; background: #111; color: white; border: 1px solid #777; padding: 3px; }
+.signal-settings textarea { width: 100%; min-height: 160px; background: #111; color: white; box-sizing: border-box; }
+
+/* Live statistics must never move the parameter inputs below them. */
+.signal-window [data-out="signal-performance"] {
+  height: 4.5em;
+  line-height: 1.5;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ─── first person (debug for now) ─── */

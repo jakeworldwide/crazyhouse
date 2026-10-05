@@ -115,7 +115,7 @@ export function createGhostPass(renderer) {
 
   /* strength 0..1 (0 skips everything), blurPx = blur radius in
      drawing-buffer pixels. Call right after rendering the frame. */
-  function render(scene, camera, strength, blurPx) {
+  function render(scene, camera, strength, blurPx, target = null) {
     if (strength <= 0.002) return;
 
     const background = scene.background;
@@ -159,7 +159,7 @@ export function createGhostPass(renderer) {
     compMat.uniforms.tex.value = result.texture;
     compMat.uniforms.strength.value = strength;
     compMat.uniforms.gain.value = 1 + Math.min(blurPx, 40) * 0.12;
-    renderer.setRenderTarget(null);
+    renderer.setRenderTarget(target);
     renderer.render(quadScene, quadCam);
 
     scene.background = background;
