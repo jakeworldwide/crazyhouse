@@ -15,7 +15,7 @@ import { openSignalURL } from './signal-clip.js?v=7';
 import { createAnalogPass } from './analog.js?v=38';
 import { createOsd } from './osd.js?v=5';
 import { createSounds } from './sound.js?v=5';
-import { createCraziness, WARNING, OVERLOAD } from './craziness.js?v=4';
+import { createCraziness, WARNING, OVERLOAD } from './craziness.js?v=5';
 import { CRAZINESS } from './craziness-list.js?v=11';
 
 
@@ -345,7 +345,7 @@ function loop(now) {
   if (sweep >= 0 && sweep < 1) Object.assign(analog.controls, { twitchY: sweep * 1.3 - 0.15, twitchW: 0.11, twitchNoise: 0.55, twitchX: 0.035 * Math.sin(now * 0.09) });
   else Object.assign(analog.controls, { twitchY: -1, twitchW: 0.03, twitchNoise: 0 });
   tickCraziness(now);
-  craziness.step(pausedAt ? 0 : dt);                      // (anything a craziness is moving, mid-move; frozen while paused)
+  craziness.step(pausedAt ? 0 : dt, CAMS[camIndex].name);   // (anything a craziness is moving, mid-move; frozen while paused)
   analog.stats.renderFrames=(analog.stats.renderFrames??0)+1;
   if(analog.stats.renderStart===undefined)analog.stats.renderStart=now;
   const renderElapsed=now-analog.stats.renderStart;

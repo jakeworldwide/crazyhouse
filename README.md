@@ -434,10 +434,12 @@ night goes quiet (more crazinesses, more night).
 3. Something really crazy: a person, a ghost, something big
 4. Super crazy: something coming straight at the cam (counts double
    toward overload). There are 3 (front yard, foyer, master bedroom).
-   It starts somewhere in the room and lurches right down the cam's line
-   of sight for 20 seconds, getting bigger and bigger, until its face is
-   up against the lens. While you're on that cam a droning dread sound
-   comes up and gets louder and nastier the closer it gets. Report it in
+   It turns up somewhere in the room and waits there until you cycle to
+   that cam. From then you've got 20 seconds: it lurches right down the
+   cam's line of sight, getting bigger and bigger, until its face is up
+   against the lens. Switching away doesn't stop it. While you're on
+   that cam (and only that cam) a droning dread sound plays and gets
+   louder and nastier the closer it gets. Report it in
    time and it's gone; let it get there and you're dead (`it got too
    close`).
 

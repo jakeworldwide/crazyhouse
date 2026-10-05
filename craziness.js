@@ -34,9 +34,11 @@
    The overload level counts what's going on at once; an intensity 4
    counts double.
 
-   An approach craziness (approach: 20) is coming for the cam: its
-   frame() moves it closer over that many seconds, and if it isn't
-   reported by then, overdue() names it and main.js ends the shift.
+   An approach craziness (approach: 20) is coming for the cam. It waits
+   where it starts until you first cycle to its cam; from then its
+   frame() moves it closer over that many seconds (whether you stay or
+   not), and if it isn't reported by then, overdue() names it and
+   main.js ends the shift.
    ============================================================ */
 
 export const WARNING = 3;      // level: "it's getting crazy"
@@ -80,7 +82,7 @@ export function createCraziness({ list, ctx, hour }) {
     def.start(ctx);
     starting = null;
     used.add(def.name);
-    active.set(def.name, { def, at: t, age: 0 });
+    active.set(def.name, { def, at: t, age: 0, seen: false });
     touch(def);
     return true;
   }
@@ -120,11 +122,13 @@ export function createCraziness({ list, ctx, hour }) {
         else { schedule[0] = t + 8; break; }                        // nothing can happen right now: try again shortly
       }
     },
-    // every frame (dt seconds, 0 while paused): moves anything that's mid-move, and
-    // calls frame(ctx, age, p) on whatever has one (p: how far along an approach is, 0..1)
-    step(dt) {
+    // every frame (dt seconds, 0 while paused; watching: the cam you're on): moves anything
+    // that's mid-move, and calls frame(ctx, age, p) on whatever has one (p: how far along an
+    // approach is, 0..1; an approach's clock only starts once you've seen its cam)
+    step(dt, watching) {
       for (const a of active.values()) {
-        a.age += dt;
+        if (a.def.approach && !a.seen && camsOf(a.def).includes(watching)) a.seen = true;
+        if (!a.def.approach || a.seen) a.age += dt;
         if (a.def.frame) a.def.frame(ctx, a.age, a.def.approach ? Math.min(1, a.age / a.def.approach) : null);
       }
       for (const tw of [...tweens]) {

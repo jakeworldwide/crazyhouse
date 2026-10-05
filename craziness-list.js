@@ -16,8 +16,9 @@
                 3  something really crazy: a person, a ghost, something big
                 4  super crazy, coming straight at the cam (counts double
                    toward a craziness overload)
-     approach   seconds: it's coming for the cam, and if it isn't reported
-                by then you're dead (the intensity 4s; see approach())
+     approach   seconds: it's coming for the cam. Its clock starts the first
+                time you cycle to its cam, and if it isn't reported by
+                then you're dead (the intensity 4s; see approach())
      at         [px, py] on the blueprint, roughly where it is (so the
                 lamps nearby redraw their shadows)
      note       what's going on, for whoever reads this
