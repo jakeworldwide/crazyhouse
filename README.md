@@ -388,10 +388,11 @@ painting turns into a mattress ad, someone's standing in the shower.
 When you spot it, report the room (`report craziness`, then the room).
 A couple of seconds later it's checked:
 
-- **Something crazy really is going on there:** the picture scrambles
-  into static for a couple of seconds with `that WAS crazy` held steady
-  over it (only the picture gets torn up, the words just get the
-  signal's fuzz), and when the picture comes back it's gone. Everything
+- **Something crazy really is going on there:** the feed scrambles hard
+  for a couple of seconds with `THAT WAS CRAZY` over it. The words are
+  on a layer of their own on top of the signal (with a little smear and
+  noise of their own), so the scramble can't make them unreadable. When
+  the picture comes back it's gone. Everything
   crazy in that room gets cleared at once.
 - **Nothing there:** `no craziness found`.
 
@@ -416,7 +417,8 @@ and after a few seconds of glory you get `play again` or `main menu`.
 Bigger stuff unlocks as the night goes on: up to intensity 2 before
 2 AM, 3 before 4 AM, then anything. The milder ones keep turning up the
 whole night; whatever just unlocked just comes up a bit more often.
-Nothing ever starts on the cam you're watching; it waits till you look
+Nothing ever starts on the cam you're watching (unless it's marked
+observable, see below); it waits till you look
 away. Nothing happens in the first 40 seconds. Each craziness only
 happens once a shift, so once they've all happened the rest of the
 night goes quiet (more crazinesses, more night).
@@ -438,6 +440,9 @@ night goes quiet (more crazinesses, more night).
   than one cam really sees it, give a list (`['foyer', 'front yard']`)
   and reporting any of them counts
 - `intensity`: 1 to 4
+- `observable`: 1 if it can happen while you're watching its cam, so you
+  catch it in the act (doors opening, furniture moving). Leave it out
+  for the usual: it waits till you look away
 - `at`: roughly where it is, in blueprint pixels, so lamps nearby redraw
   their shadows
 - `note`: what's going on, for whoever's reading the code
@@ -449,9 +454,11 @@ named piece of furniture, `add` / `remove` put new things in the scene,
 `paintings.repaint(name, draw)` / `paintings.restore(name)` swap a
 painting's picture, `cam(name)` is a cam's position, plus `THREE`, `X`,
 `Z`, `FLOOR` and `walkHeight`. There are helpers at the top: `figure()` for a tall dark someone with
-glowing eyes, `standing()` for one that just stands there, and
+glowing eyes, `standing()` for one that just stands there, 
 `opens('fridge-door')` for anything that opens (doors, the fridge, the
-dryer) swinging open by itself. The placeholders (`craziness1` to
+dryer) swinging open by itself, and `moves(seconds, pose)` for sliding
+or turning something to a new spot smoothly, so if you're watching you
+see it go instead of it just jumping there. The placeholders (`craziness1` to
 `craziness14`) show each kind.
 
 Make sure it's plainly in its own room from its cam. Something standing
@@ -461,7 +468,7 @@ bathroom, and then reporting it right feels wrong.
 The debug panel's `craziness` section has a dropdown of them all with a
 `spawn` button (ones that already happened this shift are greyed out),
 spawn random, skip an hour ahead, clear them all, buttons to show the
-warning, the `that WAS crazy` scramble, the 6 AM win and the overload
+warning, the `THAT WAS CRAZY` scramble, the 6 AM win and the overload
 death, and `can't die`. The readout shows the level and when the next
 one's due.
 

@@ -4,7 +4,7 @@
    Something in the house goes crazy (a chair moves, a painting turns
    into something it shouldn't be, someone is standing in the laundry).
    You report the room; if something crazy really is going on there, the
-   feed scrambles, "that WAS crazy" fills the screen, and when the
+   feed scrambles, "THAT WAS CRAZY" fills the screen, and when the
    picture comes back it's gone. Let too much go crazy at once and it's a
    craziness overload.
 
@@ -21,6 +21,9 @@
    3 before 4 AM, then all of them); the milder ones keep turning up
    too, the newest intensity just comes up a bit more often. Nothing
    ever starts on the cam you're watching: it waits until you look away.
+   Unless it's marked observable: 1 (doors opening, furniture moving):
+   those can happen right in front of you, and you see them happen.
+   Leave it out (or observable: 0) for the usual.
    Each craziness happens at most once a shift, so once they've all
    happened, the rest of the night is quiet.
 
@@ -39,6 +42,18 @@ export function createCraziness({ list, ctx, hour }) {
   const active = new Map();                  // name -> { def, at (shift seconds) }
   const used = new Set();                     // everything that's happened this shift (none happen twice)
   const camsOf = d => [].concat(d.cam);
+
+  /* ctx.tween(seconds, f): calls f(p) every frame with p easing from 0 to 1,
+     so a craziness can move something smoothly instead of just being in its
+     new spot. Returns { cancel() }. The lamps near it redraw shadows as it goes. */
+  const tweens = new Set();
+  let starting = null;
+  ctx.tween = (seconds, f) => {
+    const tw = { t: 0, seconds: Math.max(0.01, seconds), f, def: starting, cancel: () => tweens.delete(tw) };
+    tweens.add(tw);
+    f(0);
+    return tw;
+  };
   let schedule = [];                          // shift seconds when the next ones are due
 
   const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -56,7 +71,9 @@ export function createCraziness({ list, ctx, hour }) {
   function touch(def) { if (def.at) ctx.moved(ctx.X(def.at[0]), ctx.Z(def.at[1])); }   // lamps near it redraw their shadows
   function start(def, t) {
     if (used.has(def.name)) return false;
+    starting = def;
     def.start(ctx);
+    starting = null;
     used.add(def.name);
     active.set(def.name, { def, at: t });
     touch(def);
@@ -73,7 +90,7 @@ export function createCraziness({ list, ctx, hour }) {
   // something new goes crazy: what's allowed this late, not already going, not on the cam you're watching
   function spawnRandom(t, watching) {
     const h = t / hour, max = h < 2 ? 2 : h < 4 ? 3 : 4;
-    const pool = list.filter(d => !used.has(d.name) && !camsOf(d).includes(watching) && d.intensity <= max);
+    const pool = list.filter(d => !used.has(d.name) && (d.observable || !camsOf(d).includes(watching)) && d.intensity <= max);
     if (!pool.length) return false;
     // the higher intensities turn up more as they unlock
     const weights = pool.map(d => d.intensity === max ? 2 : 1);
@@ -96,6 +113,15 @@ export function createCraziness({ list, ctx, hour }) {
       while (schedule.length && t >= schedule[0]) {
         if (spawnRandom(t, watching)) schedule.shift();
         else { schedule[0] = t + 8; break; }                        // nothing can happen right now: try again shortly
+      }
+    },
+    // every frame (dt seconds): moves anything that's mid-move
+    step(dt) {
+      for (const tw of [...tweens]) {
+        tw.t = Math.min(1, tw.t + dt / tw.seconds);
+        tw.f(tw.t * tw.t * (3 - 2 * tw.t));
+        if (tw.def) touch(tw.def);
+        if (tw.t >= 1) tweens.delete(tw);
       }
     },
     // what's going on in a cam's room (names)

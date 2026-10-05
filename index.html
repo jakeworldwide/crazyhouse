@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=VT323&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="crazyhouse.css?v=23" />
+  <link rel="stylesheet" href="crazyhouse.css?v=24" />
 </head>
 <body>
 
@@ -26,11 +26,11 @@
       <div class="hud-cam"><span id="camNum" data-osd="hud">CAM 01</span><span id="camName" data-osd="hud"></span></div>
       <div class="hud-rec" data-osd="hud"><i data-osd-dot></i>rec</div>
       <div class="hud-clock" id="clock" data-osd="hud">12:00 AM</div>
-      <div class="hud-dots" id="dots"></div>
+      <div class="hud-dots" id="dots" data-osd="hud"></div>
     </div>
 
-    <button class="arrow prev" id="prev" data-osd="hud" data-osd-shape="chevron-left" aria-label="Previous camera"></button>
-    <button class="arrow next" id="next" data-osd="hud" data-osd-shape="chevron-right" aria-label="Next camera"></button>
+    <button class="arrow prev" id="prev" data-osd="hud" aria-label="Previous camera">&lt;</button>
+    <button class="arrow next" id="next" data-osd="hud" aria-label="Next camera">&gt;</button>
 
     <!-- bottom right: night vision, and reporting craziness in a room -->
     <div class="feed-controls">
@@ -50,7 +50,7 @@
     </div>
 
     <!-- craziness: reported and confirmed, too much going on at once, and overload -->
-    <div class="crazy-banner" id="crazyBanner" data-osd="hud" hidden>that WAS crazy</div>
+    <div class="crazy-banner" id="crazyBanner" data-osd="top" hidden>THAT WAS CRAZY</div>
     <div class="crazy-warning" id="crazyWarning" data-osd="hud" hidden></div>
     <div class="dead-menu" id="deadMenu" hidden>
       <div class="dead-title" data-osd="dead">craziness overload</div>
@@ -81,6 +81,6 @@
 
   </div>
 
-  <script type="module" src="main.js?v=75"></script>
+  <script type="module" src="main.js?v=76"></script>
 </body>
 </html>

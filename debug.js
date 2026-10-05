@@ -51,7 +51,7 @@ export function createDebug(api) {
       <div class="dbg-help">each one only happens once a shift (try again or a new shift resets them)</div>
       <div class="dbg-row"><select data-in="crazy" aria-label="Craziness to spawn"></select><button data-act="crazy-go">spawn</button></div>
       <div class="dbg-row"><button data-act="crazy-spawn">spawn random</button><button data-act="crazy-hour">+1 hour</button><button data-act="crazy-clear">clear all</button></div>
-      <div class="dbg-row"><button data-act="crazy-warn">warning</button><button data-act="crazy-scramble">that WAS crazy</button></div>
+      <div class="dbg-row"><button data-act="crazy-warn">warning</button><button data-act="crazy-scramble">THAT WAS CRAZY</button></div>
       <div class="dbg-row"><button data-act="crazy-win">win (6 AM)</button><button data-act="crazy-lose">lose (overload)</button></div>
       <button data-act="crazy-death">can't die: on</button>
     </details>

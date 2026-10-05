@@ -6,6 +6,9 @@
      cam        the cam/room it happens in: what you report (a list,
                 ['foyer', 'front yard'], if more than one cam sees it;
                 any of them counts)
+     observable 1 if it can happen while you're watching its cam (you see it
+                happen: a door swinging open, a chair turning); leave it out
+                (0) and it waits until you're looking somewhere else
      intensity  1  something moves, appears or disappears
                 2  something strange: a painting turns into a photo
                    or an advert that doesn't belong
@@ -18,8 +21,10 @@
      start(ctx) make it happen; stop(ctx) put everything back
 
    ctx has THREE, scene, X(px), Z(py), FLOOR, walkHeight(x, z),
-   find(name), cam(name), add(obj), remove(obj), moved(x, z) and
-   paintings (repaint(name, draw, { crisp }) / restore(name)).
+   find(name), cam(name), add(obj), remove(obj), moved(x, z),
+   paintings (repaint(name, draw, { crisp }) / restore(name)) and
+   tween(seconds, f) (f(p) every frame, p easing 0 to 1, for moving
+   things smoothly; moves() below does the usual case).
 
    These are placeholders to test the system with: copy one, give it the
    next number, and make it do something new.
@@ -34,6 +39,17 @@ function turnAbout(obj, x, z, angle, dx = 0, dz = 0) {
   obj.position.set(x - (c * x + s * z) + dx, 0, z - (-s * x + c * z) + dz);
 }
 function putBack(obj) { obj.rotation.set(0, 0, 0); obj.position.set(0, 0, 0); }
+
+/* a craziness that's something sliding or turning to a new spot over `seconds`
+   (so if you're watching, you see it go). pose(ctx, p): p 0 is where it
+   belongs, 1 is the crazy spot; anything between is on the way. */
+function moves(seconds, pose) {
+  let tw = null;
+  return {
+    start(ctx) { tw = ctx.tween(seconds, p => pose(ctx, p)); },
+    stop(ctx) { tw?.cancel(); pose(ctx, 0); }
+  };
+}
 
 /* A tall, thin, dark figure with pale points for eyes. Its front is +z;
    faceTowards turns it to look at a point, head tilted up or down to meet it. */
@@ -86,10 +102,9 @@ function standing(make) {
 
 export const CRAZINESS = [
   {
-    name: 'craziness1', cam: 'living room', intensity: 1, at: [650, 262],
-    note: 'The armchair has turned round to face the wall.',
-    start: ctx => turnAbout(ctx.find('armchair'), ctx.X(650), ctx.Z(262), 2.2),
-    stop: ctx => putBack(ctx.find('armchair'))
+    name: 'craziness1', cam: 'living room', intensity: 1, observable: 1, at: [650, 262],
+    note: 'The armchair slowly turns round to face the wall.',
+    ...moves(4, (ctx, p) => turnAbout(ctx.find('armchair'), ctx.X(650), ctx.Z(262), 2.2 * p))
   },
   {
     name: 'craziness2', cam: 'kitchen', intensity: 1, at: [960, 515],
@@ -98,10 +113,9 @@ export const CRAZINESS = [
     stop: ctx => { ctx.find('pizza-boxes').visible = true; }
   },
   {
-    name: 'craziness3', cam: 'master bedroom', intensity: 1, at: [1206, 846],
-    note: 'The little round table has walked out into the middle of the room.',
-    start: ctx => turnAbout(ctx.find('round-table'), ctx.X(1206), ctx.Z(846), 0.4, -3.4, 1.4),
-    stop: ctx => putBack(ctx.find('round-table'))
+    name: 'craziness3', cam: 'master bedroom', intensity: 1, observable: 1, at: [1206, 846],
+    note: 'The little round table slides out into the middle of the room.',
+    ...moves(3.5, (ctx, p) => turnAbout(ctx.find('round-table'), ctx.X(1206), ctx.Z(846), 0.4 * p, -3.4 * p, 1.4 * p))
   },
   {
     name: 'craziness4', cam: 'master bedroom', intensity: 2, at: [1005, 1068],
@@ -182,27 +196,27 @@ export const CRAZINESS = [
     })
   },
   {
-    name: 'craziness10', cam: ['foyer', 'front yard'], intensity: 1, at: [107, 648],
+    name: 'craziness10', cam: ['foyer', 'front yard'], intensity: 1, observable: 1, at: [107, 648],
     note: 'The front door creaks open on its own.',
     ...opens('door-front', 5)
   },
   {
-    name: 'craziness11', cam: 'foyer', intensity: 1, at: [213, 562],
+    name: 'craziness11', cam: 'foyer', intensity: 1, observable: 1, at: [213, 562],
     note: 'The coat closet has slid open.',
     ...opens('door-coat-closet', 2.5)
   },
   {
-    name: 'craziness12', cam: 'kitchen', intensity: 1, at: [1020, 659],
+    name: 'craziness12', cam: 'kitchen', intensity: 1, observable: 1, at: [1020, 659],
     note: 'The fridge door is hanging wide open.',
     ...opens('fridge-door', 3)
   },
   {
-    name: 'craziness13', cam: 'laundry', intensity: 1, at: [716, 888],
+    name: 'craziness13', cam: 'laundry', intensity: 1, observable: 1, at: [716, 888],
     note: 'The dryer door has swung open.',
     ...opens('dryer-door', 2)
   },
   {
-    name: 'craziness14', cam: 'bathroom', intensity: 1, at: [429, 985],
+    name: 'craziness14', cam: 'bathroom', intensity: 1, observable: 1, at: [429, 985],
     note: 'The shower door is standing open.',
     ...opens('door-shower', 3)
   }

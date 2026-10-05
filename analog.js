@@ -53,21 +53,23 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
     const receiver=lowPassWeights(controls.receiverChromaMHz,315/88*4,controls.receiverTaps,33);
     chromaWeights.forEach((v,i)=>v.set(2*receiver[i]*Math.cos((i-16)*Math.PI/2),2*receiver[i]*Math.sin((i-16)*Math.PI/2)));
   }
-  const uniforms = {sourceSetup:{value:7.5},sourceChromaGain:{value:1},notchSpacing:{value:2},cleanView:{value:0}, sourceWeights:{value:sourceWeights},chromaWeights:{value:chromaWeights}, videoMode:{value:videoSource?1:0}, videoSource:{value:videoSource??picture.texture}, picture:{value:picture.texture}, source:{value:filtered.texture},  signal:{value:signal.texture}, injection:{value:picture.texture}, injectionGain:{value:0}, time:{value:0}, interference:{value:0}, noise:{value:0.004}, timing:{value:timingTexture}, humGain:{value:0}, testGain:{value:1}, exposure:{value:0.75}, monochrome:{value:0}, signalLevel:{value:1}, osd:{value:null}, osdOn:{value:0}, twitchY:{value:-1}, twitchX:{value:0}, twitchW:{value:.03}, twitchNoise:{value:0}, scramble:{value:0}, whiteout:{value:0}, fisheye:{value:0}, aspect:{value:16/9}, humPhase:{value:0}, frameParity:{value:0}, comb:{value:0}, colorKiller:{value:1}, receiverSetup:{value:7.5}, clipPrevious:{value:picture.texture}, clipHasPrevious:{value:0}, clipPreviousStart:{value:-1e20}, clipCurrent:{value:picture.texture}, clipNext:{value:picture.texture}, clipEnabled:{value:0}, clipHasNext:{value:0}, clipGain:{value:0}, clipOffset:{value:0}, clipRatio:{value:1}, clipNextStart:{value:1e20}, clipEnd:{value:1e20}, clipSamples:{value:1}, clipWidth:{value:1}, clipLines:{value:480}, clipFilter:{value:clipFilter} };
+  const uniforms = {sourceSetup:{value:7.5},sourceChromaGain:{value:1},notchSpacing:{value:2},cleanView:{value:0}, sourceWeights:{value:sourceWeights},chromaWeights:{value:chromaWeights}, videoMode:{value:videoSource?1:0}, videoSource:{value:videoSource??picture.texture}, picture:{value:picture.texture}, source:{value:filtered.texture},  signal:{value:signal.texture}, injection:{value:picture.texture}, injectionGain:{value:0}, time:{value:0}, interference:{value:0}, noise:{value:0.004}, timing:{value:timingTexture}, humGain:{value:0}, testGain:{value:1}, exposure:{value:0.75}, monochrome:{value:0}, signalLevel:{value:1}, osd:{value:null}, osdOn:{value:0}, twitchY:{value:-1}, twitchX:{value:0}, twitchW:{value:.03}, twitchNoise:{value:0}, scramble:{value:0}, whiteout:{value:0}, osdBend:{value:.45}, top:{value:null}, topOn:{value:0}, fisheye:{value:0}, aspect:{value:16/9}, humPhase:{value:0}, frameParity:{value:0}, comb:{value:0}, colorKiller:{value:1}, receiverSetup:{value:7.5}, clipPrevious:{value:picture.texture}, clipHasPrevious:{value:0}, clipPreviousStart:{value:-1e20}, clipCurrent:{value:picture.texture}, clipNext:{value:picture.texture}, clipEnabled:{value:0}, clipHasNext:{value:0}, clipGain:{value:0}, clipOffset:{value:0}, clipRatio:{value:1}, clipNextStart:{value:1e20}, clipEnd:{value:1e20}, clipSamples:{value:1}, clipWidth:{value:1}, clipLines:{value:480}, clipFilter:{value:clipFilter} };
   const material = fragmentShader => new THREE.ShaderMaterial({uniforms, vertexShader:VERT, fragmentShader, depthTest:false, depthWrite:false, toneMapped:false});
   const prepare = material(`
     uniform sampler2D picture,videoSource;uniform float videoMode;
-    uniform float monochrome,cleanView,fisheye,aspect,osdOn,twitchY,twitchX,twitchW,twitchNoise,time,scramble,whiteout;uniform sampler2D osd;
+    uniform float monochrome,cleanView,fisheye,aspect,osdOn,twitchY,twitchX,twitchW,twitchNoise,time,scramble,whiteout,osdBend,topOn;uniform sampler2D osd,top;
     float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
     ${THREE.ShaderChunk.tonemapping_pars_fragment.replaceAll('toneMappingExposure','exposure')}
     varying vec2 vUv;
     // the cam's wide lens: a gentle barrel, the left and right edges kept in frame, the corners falling off to black
-    vec2 lens(vec2 uv){
+    vec2 lensK(vec2 uv,float k){
       vec2 c=(uv-.5)*vec2(aspect,1.);
       float edge=.25*aspect*aspect;
-      c*=(1.+fisheye*dot(c,c))/(1.+fisheye*edge);
+      c*=(1.+k*dot(c,c))/(1.+k*edge);
       return c/vec2(aspect,1.)+.5;
     }
+    vec2 lens(vec2 uv){return lensK(uv,fisheye);}
+    float insideOf(vec2 uv){return smoothstep(0.,.004,uv.x)*smoothstep(0.,.004,uv.y)*smoothstep(0.,.004,1.-uv.x)*smoothstep(0.,.004,1.-uv.y);}
     void main(){
       // a tracking twitch: a thin band of lines slips sideways for a moment
       vec2 v=vUv;float band=abs(v.y-twitchY),inBand=max(0.,1.-band/twitchW);
@@ -89,8 +91,12 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
       if(scramble>0.)rgb=mix(rgb,vec3(grain*grain*1.15),scramble*.85);
       // whited out (0..1): the picture burns up to bright white, a little static left in it
       if(whiteout>0.)rgb=mix(rgb,vec3(.86+.14*grain),whiteout);
-      // the camera's own text, laid over the picture before the signal (osd.js)
-      if(osdOn>.5){vec4 o=texture2D(osd,clamp(uv,0.,1.));rgb=mix(rgb,o.rgb,o.a*inside);}     // bent by the lens too
+      // the camera's own text, laid over the picture before the signal (osd.js); bent by the
+      // lens too, but less than the picture (flat boxes of text show every bit of bend)
+      vec2 ouv=lensK(v,fisheye*osdBend);
+      if(osdOn>.5){vec4 o=texture2D(osd,clamp(ouv,0.,1.));rgb=mix(rgb,o.rgb,o.a*insideOf(ouv));}
+      // with the signal off, the top layer goes straight on here (otherwise it's added after the signal)
+      if(cleanView>.5&&topOn>.5){vec4 o=texture2D(top,clamp(lensK(vUv,fisheye*osdBend),0.,1.));rgb=mix(rgb,o.rgb,o.a);}
       // a tracking band can carry noise with it (night vision's sweep)
       if(twitchNoise>0.){float h=fract(sin(dot(floor(vUv*vec2(360.,240.))+fract(time)*97.,vec2(127.1,311.7)))*43758.5453);rgb=mix(rgb,vec3(h),twitchNoise*inBand);}
       float y=dot(rgb,vec3(0.299,0.587,0.114));
@@ -212,7 +218,27 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
       gl_FragColor=vec4(clamp(vec3(r,(y-.299*r-.114*b)/.587,b),0.,1.),1.);
     }`);
   uniforms.finalView={value:decoded.texture};
-  const display=material(`uniform sampler2D finalView;varying vec2 vUv;void main(){gl_FragColor=texture2D(finalView,vUv);}`);
+  /* The top layer (osd.js's 'top' group: "THAT WAS CRAZY") goes on after the
+     signal, so the glitches and tracking trouble underneath can't touch it.
+     It gets its own little bit of analog: a smear trailing to the right, red
+     bleeding off the edges, lines jittering a hair, a sprinkle of noise. */
+  const display=material(`uniform sampler2D finalView,top;uniform float topOn,fisheye,osdBend,aspect,time;varying vec2 vUv;
+    float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    void main(){
+      vec3 rgb=texture2D(finalView,vUv).rgb;
+      if(topOn>.5){
+        vec2 c=(vUv-.5)*vec2(aspect,1.);float k=fisheye*osdBend;
+        c*=(1.+k*dot(c,c))/(1.+k*.25*aspect*aspect);
+        vec2 uv=c/vec2(aspect,1.)+.5;
+        uv.x+=(hash(vec2(floor(vUv.y*240.),floor(time*30.)))-.5)*.0016;
+        float px=1./720.;
+        vec4 o=texture2D(top,uv)*.45+texture2D(top,uv-vec2(px,0.))*.25+texture2D(top,uv-vec2(2.*px,0.))*.18+texture2D(top,uv+vec2(px,0.))*.12;
+        vec3 t=vec3(mix(o.r,texture2D(top,uv-vec2(3.*px,0.)).r,.35),o.g,mix(o.b,texture2D(top,uv+vec2(2.*px,0.)).b,.3));
+        t+=(hash(floor(vUv*vec2(320.,240.))+fract(time)*91.)-.5)*.1;
+        rgb=mix(rgb,t,o.a);
+      }
+      gl_FragColor=vec4(rgb,1.);
+    }`);
   const quad = new THREE.Mesh(geometry,encode); quad.frustumCulled=false;
   const scene=new THREE.Scene(); scene.add(quad);
   const camera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
@@ -222,7 +248,7 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
   // Compile the clean presentation variant during setup, not on the first toggle.
   const previousTarget=renderer.getRenderTarget();quad.material=prepare;
   renderer.setRenderTarget(null);renderer.compile(scene,camera);renderer.setRenderTarget(previousTarget);quad.material=encode;
-  const controls={...defaults,receiverOverrides:{},noise:0,  interference:0,  injection:null, injectionGain:0, testGain:1, automaticHum:false, automaticHumGain:0.15, monochrome:false, signalLevel:1, glitch:0, fisheye:0, snow:0, osd:null, twitchY:-1, twitchX:0, twitchW:.03, twitchNoise:0, scramble:0, whiteout:0};
+  const controls={...defaults,receiverOverrides:{},noise:0,  interference:0,  injection:null, injectionGain:0, testGain:1, automaticHum:false, automaticHumGain:0.15, monochrome:false, signalLevel:1, glitch:0, fisheye:0, snow:0, osd:null, twitchY:-1, twitchX:0, twitchW:.03, twitchNoise:0, scramble:0, whiteout:0, osdBend:.45, top:null};
   const heldSignals = new Set();
   let clip=null;
   // Alternate quiet gaps and live mains injection; both last 1–5 seconds.
@@ -338,6 +364,8 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
     uniforms.twitchY.value=controls.twitchY;uniforms.twitchX.value=controls.twitchX;
     uniforms.twitchW.value=controls.twitchW;uniforms.twitchNoise.value=controls.twitchNoise;
     uniforms.scramble.value=controls.scramble;uniforms.whiteout.value=controls.whiteout;
+    uniforms.osdBend.value=controls.osdBend;uniforms.fisheye.value=controls.fisheye;
+    uniforms.top.value=controls.top||picture.texture;uniforms.topOn.value=controls.top?1:0;
   }
   function snow(seconds){
     snowMaterial.uniforms.time.value=seconds;

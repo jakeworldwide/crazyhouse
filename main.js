@@ -12,11 +12,11 @@ import { createGhoul } from './ghoul.js?v=13';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
-import { createAnalogPass } from './analog.js?v=37';
+import { createAnalogPass } from './analog.js?v=38';
 import { createOsd } from './osd.js?v=5';
 import { createSounds } from './sound.js?v=4';
-import { createCraziness, WARNING, OVERLOAD } from './craziness.js?v=2';
-import { CRAZINESS } from './craziness-list.js?v=5';
+import { createCraziness, WARNING, OVERLOAD } from './craziness.js?v=3';
+import { CRAZINESS } from './craziness-list.js?v=6';
 
 
 const $ = id => document.getElementById(id);
@@ -36,7 +36,7 @@ const debug = { composite: true, free: false, fov: null, tick: null, onCam: null
   noDeath: new URLSearchParams(location.search).has('debug') };          // in debug you can't die (the panel can switch it back)
 let camIndex = 0;
 export function setComposite(enabled){debug.composite=Boolean(enabled);}
-let renderer, scene, camera, ghoul, ghost, lamps, emp, ticks, ir, tv, analog, pvs, osd, osdTex;
+let renderer, scene, camera, ghoul, ghost, lamps, emp, ticks, ir, tv, analog, pvs, osd, osdTex, osdTop, topTex;
 let signalOK = true, signalTries = 0, craziness;
 const EXPOSURE = 0.66;         // overall brightness of the picture
 const RESOLUTION = 1;          // pixel ratio (window.devicePixelRatio for full retina sharpness, at 4x the cost)
@@ -176,6 +176,12 @@ function initGL() {
   osdTex.generateMipmaps = false;
   osdTex.minFilter = THREE.LinearFilter;
   analog.controls.osd = osdTex;
+  // the top layer: "THAT WAS CRAZY", put on after the signal so the scramble can't wreck it
+  osdTop = createOsd(frame);
+  topTex = new THREE.CanvasTexture(osdTop.canvas);
+  topTex.colorSpace = THREE.NoColorSpace;
+  topTex.generateMipmaps = false;
+  topTex.minFilter = THREE.LinearFilter;
   // the true signal needs the device to draw and read back 32-bit float pictures; without that
   // (some phones) the feed is the clean picture, lens, text and all, with a simpler static
   signalOK = renderer.extensions.has('EXT_color_buffer_float') && !new URLSearchParams(location.search).has('nosignal');   // (?nosignal tries it without)
@@ -282,7 +288,7 @@ function setup() {
       isNight: () => night, camIndex: () => camIndex
     };
     window.crazyhouse = api;
-    import('./debug.js?v=24').then(m => m.createDebug(api));
+    import('./debug.js?v=25').then(m => m.createDebug(api));
   }
 
   return true;
@@ -311,7 +317,7 @@ function loop(now) {
   if (state === 'dead' || state === 'won') {
     // craziness overload: nothing but snow, and the way out; or 6 AM: white, and the glory
     const won = state === 'won';
-    Object.assign(analog.controls, { signalLevel: 1, snow: won ? 0.02 : 0.06, glitch: 0, fisheye: 0, monochrome: false, twitchY: -1, twitchW: 0.03, twitchNoise: 0, scramble: 0, whiteout: won ? 1 : 0 });
+    Object.assign(analog.controls, { signalLevel: 1, snow: won ? 0.02 : 0.06, glitch: 0, fisheye: 0, monochrome: false, twitchY: -1, twitchW: 0.03, twitchNoise: 0, scramble: 0, whiteout: won ? 1 : 0, top: null });
     if (won && now > wonAt + REVEL * 1000) wonButtons.hidden = false;
     if (osd.update(state, now)) osdTex.needsUpdate = true;
     analog.snow(now / 1000);
@@ -320,7 +326,7 @@ function loop(now) {
   }
   if (!['playing', 'dying', 'winning'].includes(state) || !scene) {
     // the title: a dead channel, nothing but snow
-    Object.assign(analog.controls, { signalLevel: 1, snow: 0.04, glitch: 0, fisheye: 0, monochrome: false, twitchW: 0.03, twitchNoise: 0, scramble: 0, whiteout: 0 });
+    Object.assign(analog.controls, { signalLevel: 1, snow: 0.04, glitch: 0, fisheye: 0, monochrome: false, twitchW: 0.03, twitchNoise: 0, scramble: 0, whiteout: 0, top: null });
     if (osd.update('title', now)) osdTex.needsUpdate = true;
     titleTwitch(now);
     analog.snow(now / 1000);
@@ -339,6 +345,7 @@ function loop(now) {
   if (sweep >= 0 && sweep < 1) Object.assign(analog.controls, { twitchY: sweep * 1.3 - 0.15, twitchW: 0.11, twitchNoise: 0.55, twitchX: 0.035 * Math.sin(now * 0.09) });
   else Object.assign(analog.controls, { twitchY: -1, twitchW: 0.03, twitchNoise: 0 });
   tickCraziness(now);
+  craziness.step(dt);                                     // (anything a craziness is moving, mid-move)
   analog.stats.renderFrames=(analog.stats.renderFrames??0)+1;
   if(analog.stats.renderStart===undefined)analog.stats.renderStart=now;
   const renderElapsed=now-analog.stats.renderStart;
@@ -359,7 +366,10 @@ function loop(now) {
   refreshShadows();
   tickClock();
   tickReport(now);
-  if (osd.update(osdGroup, now, analog.controls.fisheye)) osdTex.needsUpdate = true;
+  const bend = analog.controls.fisheye * analog.controls.osdBend;       // (the text's lens is gentler than the picture's)
+  if (osd.update(osdGroup, now, bend)) osdTex.needsUpdate = true;
+  if (osdTop.update('top', now, bend)) topTex.needsUpdate = true;
+  analog.controls.top = banner.hidden ? null : topTex;
   const target = analog.picture;
   const height = analog.picture.height;
   renderer.setRenderTarget(target);
@@ -574,10 +584,10 @@ function tickReport(now) {
 
 /* ─── craziness ─────────────────────────────── */
 
-/* Confirmed: the picture scrambles violently for a couple of seconds
-   with "that WAS crazy" held steady over it (the text goes on after the
-   picture is torn up, so it only gets the signal's fuzz), and halfway
-   through, while nobody can see, the craziness in that room is put right. */
+/* Confirmed: the feed scrambles violently for a couple of seconds with
+   "THAT WAS CRAZY" over it, on a layer of its own on top of the signal
+   (so the scramble can't make it unreadable), and halfway through, while
+   nobody can see, the craziness in that room is put right. */
 const SCRAMBLE = 2.4;          // seconds
 const WARN_FOR = 30;           // seconds the warning blinks before it gives up (comes back if it gets crazier)
 const WIN_STATIC = 3.2;        // seconds of 6 AM static burning up to white
@@ -621,8 +631,9 @@ function tickCraziness(now) {
   // the scramble: only the picture, the banner stays readable
   const sc = (now - scrambleStart) / 1000;
   if (sc < SCRAMBLE) {
-    const k = Math.min(1, sc / 0.12, (SCRAMBLE - sc) / 0.5);          // in hard, out a little softer
-    Object.assign(analog.controls, { scramble: k, snow: 0.03 * k });
+    const k = Math.min(1, sc / 0.25, (SCRAMBLE - sc) / 0.6);          // in hard, out a little softer
+    Object.assign(analog.controls, { glitch: 0.8 * k, twitchY: Math.random(), twitchW: 0.12 + 0.25 * Math.random(),
+      twitchNoise: 0.6 * k, twitchX: (Math.random() - 0.5) * 0.18 * k });
     if (scrambleRoom && sc > SCRAMBLE * 0.45) { craziness.clearRoom(scrambleRoom); scrambleRoom = null; }
   } else if (!banner.hidden) banner.hidden = true;
   // too much going on: a warning (each time it gets crazier), then craziness overload
