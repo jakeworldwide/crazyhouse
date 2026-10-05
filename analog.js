@@ -196,7 +196,8 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
   const scene=new THREE.Scene(); scene.add(quad);
   const camera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   const defaults=Object.freeze({lumaMHz:3,chromaMHz:1.3,sourceTaps:3,receiverChromaMHz:1.3,receiverTaps:33,sourceSetup:7.5,sourceChromaGain:1,notchSpacing:2,sceneScale:1,displayWidth:true,sourceLinear:false,waveLinear:true,outputLinear:false});
-  const receiverDefaults=Object.freeze({comb:true,colorKiller:false,gain:1.5,slew:1.1});
+  // slew 3 V/us: edges keep a little analog bleed without smearing text to mush (1.1 smeared every edge ~1% of the width and tinted the picture green)
+  const receiverDefaults=Object.freeze({comb:true,colorKiller:false,gain:1.5,slew:3});
   // Compile the clean presentation variant during setup, not on the first toggle.
   const previousTarget=renderer.getRenderTarget();quad.material=prepare;
   renderer.setRenderTarget(null);renderer.compile(scene,camera);renderer.setRenderTarget(previousTarget);quad.material=encode;

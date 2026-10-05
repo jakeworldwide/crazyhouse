@@ -12,7 +12,7 @@ import { createGhoul } from './ghoul.js?v=12';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
-import { createAnalogPass } from './analog.js?v=32';
+import { createAnalogPass } from './analog.js?v=33';
 import { createOsd } from './osd.js?v=3';
 
 
