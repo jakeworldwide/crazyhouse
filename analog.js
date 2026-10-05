@@ -71,8 +71,8 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
       vec3 rgb=ACESFilmicToneMapping(texture2D(picture,clamp(uv,0.,1.)).rgb)*inside;
       rgb=mix(rgb*12.92,1.055*pow(rgb,vec3(1./2.4))-0.055,step(vec3(0.0031308),rgb));
       if(videoMode>.5)rgb=texture2D(videoSource,vec2(vUv.x,1.-vUv.y)).rgb;
-      // the camera's own text, laid over the picture after the lens and before the signal (osd.js)
-      if(osdOn>.5){vec4 o=texture2D(osd,v);rgb=mix(rgb,o.rgb,o.a);}
+      // the camera's own text, laid over the picture before the signal (osd.js)
+      if(osdOn>.5){vec4 o=texture2D(osd,clamp(uv,0.,1.));rgb=mix(rgb,o.rgb,o.a*inside);}     // bent by the lens too
       // a tracking band can carry noise with it (night vision's sweep)
       if(twitchNoise>0.){float h=fract(sin(dot(floor(vUv*vec2(360.,240.))+fract(time)*97.,vec2(127.1,311.7)))*43758.5453);rgb=mix(rgb,vec3(h),twitchNoise*inBand);}
       float y=dot(rgb,vec3(0.299,0.587,0.114));

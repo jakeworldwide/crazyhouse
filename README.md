@@ -319,7 +319,8 @@ green and grainy, with dark corners (the signal goes monochrome before
 composite encoding, then `.night` in the CSS tints it and lays grain over
 it). The IR light falls off gently (linear, not squared) so what's near
 the cam isn't blown out. Switching it on or off rolls a band of tracking
-trouble up the picture from the bottom (`SWEEP`). Lamps blow out and
+trouble up the picture from the bottom (`SWEEP`), and the signal breaks
+up like a cam switch. Lamps blow out and
 ghoul1's pupils glow. Strength is `IR_STRENGTH` and `NV_GAIN` in
 `main.js`.
 
@@ -340,18 +341,23 @@ ghoul1's pupils glow. Strength is `IR_STRENGTH` and `NV_GAIN` in
   applied to the picture before it's encoded, like a real lens. First
   person and the free cam stay flat.
 - **The feed's text** (`osd.js`): the cam number and name, REC, the
-  clock, NV and the anomaly menu are laid over the picture inside the
-  camera, after the lens and before the signal, so they smear and ghost
-  like a VCR's own text. They're ordinary page elements underneath
+  clock, NV, the craziness menu, the big left and right arrows and the
+  cam dots are laid over the picture inside the camera, bent by the
+  same lens and fed through the signal, so they smear and ghost like a
+  VCR's own text. They're ordinary page elements underneath
   (`data-osd="hud"`), invisible but there to be clicked; osd.js copies
-  them onto a canvas whenever they change. White on black, in VT323.
+  them onto a canvas whenever they change, and nudges each button to sit
+  under where the lens shows it. White on black, in VT323.
+- **Sound** (`sound.js`, made on the spot with Web Audio, no files):
+  switching cams is an old tube set's channel dial thunking over (the
+  detent's clack and spring, the cabinet's thump, the flyback's tick and
+  a hiss of static); night vision's switch is a smaller relay click.
 - **The clock** starts at midnight and runs fast: an hour every 5 real
   minutes (`HOUR` in `main.js`).
-- **Reporting an anomaly** (bottom right, or R): pick what's wrong on the
-  cam you're watching (object moved, object missing, extra object,
-  picture changed, strange light, intruder, camera malfunction). There
-  are no anomalies yet, so every report comes back "no anomaly found";
-  `checkAnomaly(cam, type)` in `main.js` is where they'll be looked up.
+- **Report craziness** (bottom right, or R): pick the room something's
+  wrong in. There's nothing crazy yet, so every report comes back "no
+  craziness found"; `checkAnomaly(cam)` in `main.js` is where it'll be
+  looked up.
 - **The EMP** has no button for now; B still fires it.
 
 ## ghoul1

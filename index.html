@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=VT323&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="crazyhouse.css?v=17" />
+  <link rel="stylesheet" href="crazyhouse.css?v=19" />
 </head>
 <body>
 
@@ -29,29 +29,16 @@
       <div class="hud-dots" id="dots"></div>
     </div>
 
-    <button class="arrow prev" id="prev" aria-label="Previous camera">
-      <svg viewBox="0 0 24 48" aria-hidden="true"><polyline points="18,4 6,24 18,44" /></svg>
-    </button>
-    <button class="arrow next" id="next" aria-label="Next camera">
-      <svg viewBox="0 0 24 48" aria-hidden="true"><polyline points="6,4 18,24 6,44" /></svg>
-    </button>
+    <button class="arrow prev" id="prev" data-osd="hud" data-osd-shape="chevron-left" aria-label="Previous camera"></button>
+    <button class="arrow next" id="next" data-osd="hud" data-osd-shape="chevron-right" aria-label="Next camera"></button>
 
-    <!-- bottom right: night vision, and reporting an anomaly on this cam -->
+    <!-- bottom right: night vision, and reporting craziness in a room -->
     <div class="feed-controls">
       <button class="nv" id="nv" data-osd="hud" aria-label="Toggle night vision" aria-pressed="false">nv</button>
       <div class="report">
-        <div class="report-list" id="reportList" hidden>
-          <button data-osd="hud" data-type="object moved">object moved</button>
-          <button data-osd="hud" data-type="object missing">object missing</button>
-          <button data-osd="hud" data-type="extra object">extra object</button>
-          <button data-osd="hud" data-type="picture changed">picture changed</button>
-          <button data-osd="hud" data-type="strange light">strange light</button>
-          <button data-osd="hud" data-type="intruder">intruder</button>
-          <button data-osd="hud" data-type="camera malfunction">camera malfunction</button>
-          <button data-osd="hud" data-type="">cancel</button>
-        </div>
+        <div class="report-list" id="reportList" hidden></div>   <!-- a button per room (main.js) -->
         <div class="report-msg" id="reportMsg" data-osd="hud" hidden></div>
-        <button class="report-btn" id="reportBtn" data-osd="hud" aria-expanded="false">report anomaly</button>
+        <button class="report-btn" id="reportBtn" data-osd="hud" aria-expanded="false">report craziness</button>
       </div>
     </div>
 
@@ -69,6 +56,6 @@
 
   </div>
 
-  <script type="module" src="main.js?v=63"></script>
+  <script type="module" src="main.js?v=64"></script>
 </body>
 </html>

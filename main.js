@@ -12,8 +12,9 @@ import { createGhoul } from './ghoul.js?v=12';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
-import { createAnalogPass } from './analog.js?v=34';
-import { createOsd } from './osd.js?v=3';
+import { createAnalogPass } from './analog.js?v=35';
+import { createOsd } from './osd.js?v=4';
+import { createSounds } from './sound.js?v=1';
 
 
 const $ = id => document.getElementById(id);
@@ -28,6 +29,7 @@ const dots    = $('dots');
 
 let state = 'title';
 // filled in by debug.js when ?debug is on
+const sounds = createSounds();
 const debug = { composite: true, free: false, fov: null, tick: null, onCam: null, fp: false, unlit: false };
 let camIndex = 0;
 export function setComposite(enabled){debug.composite=Boolean(enabled);}
@@ -245,7 +247,8 @@ function setup() {
 
   fit();
 
-  CAMS.forEach(() => dots.appendChild(document.createElement('i')));
+  // the cam dots, drawn into the feed with its text (osd.js)
+  CAMS.forEach(() => { const d = document.createElement('i'); d.dataset.osd = 'hud'; dots.appendChild(d); });
 
   // add ?debug to the URL for the debug panel (free cam, FOV, lighting
   // modes) and to poke at the scene from the browser console
@@ -318,7 +321,7 @@ function loop(now) {
   refreshShadows();
   tickClock();
   tickReport(now);
-  if (osd.update('hud', now)) osdTex.needsUpdate = true;
+  if (osd.update('hud', now, analog.controls.fisheye)) osdTex.needsUpdate = true;
   const target = analog.picture;
   const height = analog.picture.height;
   renderer.setRenderTarget(target);
@@ -346,8 +349,9 @@ function showCam(i) {
   camName.textContent = c.name;
   [...dots.children].forEach((d, n) => d.classList.toggle('on', n === camIndex));
 
-  // the feed switching over: the signal breaks up for a moment
+  // the feed switching over: the dial thunks and the signal breaks up for a moment
   glitch = GLITCH;
+  sounds.thunk();
   if (!debug.composite) {
     frame.classList.remove('cut');
     void frame.offsetWidth;
@@ -405,8 +409,8 @@ function tickEmp() {
 /* Like a real security cam: switching to night vision turns on an
    infrared light at the camera that floods the room it's watching,
    and the picture gets brighter, green and grainy. */
-const IR_STRENGTH = 26;
-const NV_GAIN = 1.5;          // how much brighter the picture gets
+const IR_STRENGTH = 20;
+const NV_GAIN = 1.2;          // how much brighter the picture gets
 const SWEEP = 0.5;            // seconds: switching it on or off rolls a tracking band up the picture
 let sweepStart = -1e9;
 let night = false;
@@ -415,7 +419,10 @@ const nvBt = $('nv');
 function toggleNight() {
   if (state !== 'playing') return;
   night = !night;
+  // the switch-over rocks the signal like changing cams, with a tracking band rolling up through it
   sweepStart = performance.now();
+  glitch = GLITCH;
+  sounds.relay();
   frame.classList.toggle('night', night);
   nvBt.classList.toggle('on', night);
   nvBt.setAttribute('aria-pressed', night);
@@ -440,23 +447,29 @@ function toggleNight() {
 
 /* ─── reporting an anomaly ──────────────────── */
 
-/* Bottom right: pick what's wrong on the cam you're watching. There are
-   no anomalies yet, so for now every report comes back with nothing found;
-   checkAnomaly(camIndex, type) is where they'll be looked up. */
+/* Bottom right: say which room something crazy is going on in. There's
+   nothing crazy yet, so for now every report comes back with nothing
+   found; checkAnomaly(camIndex) is where it'll be looked up. */
 const reportBtn = $('reportBtn'), reportList = $('reportList'), reportMsg = $('reportMsg');
 let reportSteps = [];
-function checkAnomaly(cam, type) { return false; }
+function checkAnomaly(cam) { return false; }
+// one button per cam, then cancel
+for (const [i, c] of [...CAMS.entries(), [-1, { name: 'cancel' }]]) {
+  const b = document.createElement('button');
+  b.dataset.osd = 'hud'; b.dataset.cam = i; b.textContent = c.name;
+  reportList.appendChild(b);
+}
 function openReport(open) {
   reportList.hidden = !open;
   reportBtn.setAttribute('aria-expanded', open);
 }
-function fileReport(type) {
+function fileReport(cam) {
   openReport(false);
-  if (!type) return;
-  const cam = camIndex, t = performance.now();
+  if (cam < 0) return;
+  const t = performance.now();
   reportSteps = [
-    [t, `reporting: ${CAMS[cam].name} / ${type}...`],
-    [t + 2200, checkAnomaly(cam, type) ? 'anomaly fixed' : 'no anomaly found'],
+    [t, `reporting: ${CAMS[cam].name}...`],
+    [t + 2200, checkAnomaly(cam) ? 'craziness fixed' : 'no craziness found'],
     [t + 4600, null]
   ];
 }
@@ -468,13 +481,14 @@ function tickReport(now) {
   }
 }
 reportBtn.addEventListener('click', () => { if (reportSteps.length) return; openReport(reportList.hidden); reportBtn.blur(); });
-reportList.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { fileReport(b.dataset.type); b.blur(); } });
+reportList.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { fileReport(Number(b.dataset.cam)); b.blur(); } });
 
 /* ─── start / quit ──────────────────────────── */
 
 function start() {
   if (state === 'playing') return;
   if (!renderer) return;
+  sounds.unlock();                            // (sound is only allowed after a click or key)
   if (!scene) setup();
   state = 'playing';
   tv.play();

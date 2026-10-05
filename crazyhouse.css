@@ -144,29 +144,30 @@ canvas { pointer-events: none; }
 
 .hud-dots {
   position: absolute;
-  bottom: 2.9cqw;
+  bottom: 5.2cqw;               /* clear of the bottom edge, which the lens pushes out of frame */
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   gap: 0.9cqw;
 }
 .hud-dots i {
-  width: 0.9cqw;
-  height: 0.9cqw;
-  min-width: 6px;
-  min-height: 6px;
-  border: 1px solid #fff;
-  opacity: 0.6;
+  width: 1.1cqw;
+  height: 1.1cqw;
+  min-width: 7px;
+  min-height: 7px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
 }
-.hud-dots i.on { background: #fff; opacity: 1; }
+.hud-dots i.on { background: #fff; border-color: #fff; }
 
 /* ─── left / right arrows ───────────────────── */
 .arrow {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: max(40px, 5.5cqw);
-  height: max(64px, 10cqw);
+  width: max(48px, 7cqw);
+  height: max(84px, 14cqw);
+  color: rgba(255, 255, 255, 0.78);
+  --osd-stroke: 7;               /* the chevron's line, in overlay pixels (osd.js draws it) */
   display: grid;
   place-items: center;
   background: transparent;
@@ -177,16 +178,8 @@ canvas { pointer-events: none; }
 }
 .arrow.prev { left: 1cqw; }
 .arrow.next { right: 1cqw; }
-.playing .arrow:hover { opacity: 1; }
-.playing .arrow:active { opacity: 0.3; }
-.arrow svg { width: 42%; height: auto; overflow: visible; }
-.arrow polyline {
-  fill: none;
-  stroke: #fff;
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 0 2px #000);
-}
+.arrow:hover { color: #fff; }
+.arrow:active { color: rgba(255, 255, 255, 0.4); }
 
 /* ─── switching cams with the composite bypassed: a quick drop to black ─── */
 .cut-flash {
@@ -252,7 +245,7 @@ canvas { pointer-events: none; }
    signal goes monochrome; this makes it look like an IR feed: green,
    grainy, vignetted. */
 .night canvas {
-  filter: grayscale(1) sepia(1) hue-rotate(52deg) saturate(2.2) contrast(1.1) brightness(0.92);
+  filter: grayscale(1) sepia(1) hue-rotate(52deg) saturate(2.2) contrast(1.1) brightness(0.85);
 }
 .nv-layer {
   position: absolute;

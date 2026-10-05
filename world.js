@@ -1530,14 +1530,24 @@ function dishDrainer() {
    pepperoni slices left in it, lid up. The lids' art is a tiny picture. */
 function pizzaBoxes() {
   const top = FLOOR + 3, S = 1.35, T = 0.15, card = surface(0xc9a46a, 0.95);
+  // the lid: a real old pizza box's art (art/pizza.png), shrunk to 48 pixels and shown with hard pixel edges
   const lidArt = surface(0xffffff, 0.9);
-  if (typeof document !== 'undefined') lidArt.map = screenCanvas(64, 64, g => {
-    g.fillStyle = '#f2ece0'; g.fillRect(0, 0, 64, 64);
-    g.strokeStyle = '#c4161c'; g.lineWidth = 3; g.strokeRect(4, 4, 56, 56);
-    g.fillStyle = '#2f6b45'; g.fillRect(8, 8, 48, 6); g.fillRect(8, 50, 48, 6);
-    g.fillStyle = '#c4161c'; g.font = 'bold italic 14px serif'; g.fillText('Pizza', 12, 30);
-    g.font = 'bold 9px sans-serif'; g.fillText('HOT & FRESH', 6, 44);
-  }); else lidArt.color.set(0xf2ece0);
+  if (typeof document !== 'undefined') {
+    const c = document.createElement('canvas');
+    c.width = c.height = 48;
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.magFilter = THREE.NearestFilter;
+    lidArt.map = tex;
+    const art = new Image();
+    art.onload = () => {
+      const g = c.getContext('2d');
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(art, 0, 0, 48, 48);
+      tex.needsUpdate = true;
+    };
+    art.src = 'art/pizza.png';
+  } else lidArt.color.set(0xf2ece0);
   const box = (x, z, turn) => {
     const g = new THREE.Group();
     g.add(tint(solid(new THREE.BoxGeometry(S, T, S), [0, T / 2, 0]), card),
@@ -2954,17 +2964,12 @@ function mailbox() {
     solid(new THREE.BoxGeometry(0.33, 1, 0.1), [-0.4, 4.6, 0.66]));    // flag
 }
 
-
 function pineTree(scale = 1, seed = 1) {
   // a trunk and five stacked tiers of boughs, each a little turned
   const tiers = [[4.8, 5.5, 5.2], [4.0, 5.0, 8.0], [3.2, 4.5, 10.6], [2.4, 4.0, 13.0], [1.5, 3.4, 15.2]];
   return named('pine',
     solid(new THREE.CylinderGeometry(0.35 * scale, 0.55 * scale, 6 * scale, 8), [0, 3 * scale, 0]),
     ...tiers.map(([r, h, y], i) => solid(new THREE.ConeGeometry(r * scale, h * scale, 12), [0, y * scale, 0], [0, (seed * 1.7 + i) * 0.45, 0])));
-}
-
-function bush() {
-  return named('bush', solid(new THREE.DodecahedronGeometry(2.3, 0), [0, 1.9, 0]));
 }
 
 function yardAt(obj, x, z) {
@@ -4046,7 +4051,6 @@ function paint(scene) {
   set('vanity', MAT.furniture);                          // oak cabinet (its top and sink keep their own)
   set('closet-shelves', MAT.trim);
   parts('pine', MAT.bark, MAT.pine);
-  set('bush', MAT.leaves);
   set('streetlight', MAT.pole);
   parts('mailbox', MAT.furniture, MAT.dark, MAT.frontDoor);  // wood post, black box, red flag
   set('door-closet', MAT.trim);                          // white accordion door
@@ -4321,8 +4325,6 @@ export function buildWorld({ weld = true } = {}) {
     yardAt(pineTree(1.0, 5), 12, 33),
     yardAt(pineTree(0.85, 6), 40, 8),
     forest(),
-    yardAt(bush(), -28, -12),
-    yardAt(bush(), -28, 12),
     yardAt(streetlight(lamps), STREET[0], STREET[1]),
     roomLamps(lamps),
     stereo(),
