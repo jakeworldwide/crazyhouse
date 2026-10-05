@@ -10,8 +10,8 @@
   <link rel="apple-touch-icon" href="favicon/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="crazyhouse.css?v=11" />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=VT323&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="crazyhouse.css?v=13" />
 </head>
 <body>
 
@@ -23,9 +23,9 @@
 
     <!-- Camera overlay -->
     <div class="hud" aria-live="polite">
-      <div class="hud-cam"><span id="camNum">cam 1</span><span id="camName"></span></div>
+      <div class="hud-cam"><span id="camNum">CAM 01</span><span id="camName"></span></div>
       <div class="hud-rec"><i></i>rec</div>
-      <div class="hud-clock" id="clock">12:00:00 am</div>
+      <div class="hud-clock" id="clock">00:00:00:00</div>
       <div class="hud-dots" id="dots"></div>
     </div>
 
@@ -39,6 +39,7 @@
     <button class="nv" id="nv" aria-label="Toggle night vision" aria-pressed="false">nv</button>
     <button class="emp" id="emp" aria-label="Fire the EMP at this room">emp</button>
 
+    <div class="cut-flash" aria-hidden="true"></div>
     <div class="emp-flash" aria-hidden="true"></div>
 
     <!-- Title screen -->
@@ -52,6 +53,6 @@
 
   </div>
 
-  <script type="module" src="main.js?v=51"></script>
+  <script type="module" src="main.js?v=57"></script>
 </body>
 </html>

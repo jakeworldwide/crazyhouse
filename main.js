@@ -12,7 +12,7 @@ import { createGhoul } from './ghoul.js?v=12';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
-import { createAnalogPass } from './analog.js?v=26';
+import { createAnalogPass } from './analog.js?v=31';
 
 
 const $ = id => document.getElementById(id);
@@ -27,7 +27,7 @@ const dots    = $('dots');
 
 let state = 'title';
 // filled in by debug.js when ?debug is on
-const debug = { composite: false, free: false, fov: null, tick: null, onCam: null, fp: false, unlit: false };
+const debug = { composite: true, free: false, fov: null, tick: null, onCam: null, fp: false, unlit: false };
 let camIndex = 0;
 export function setComposite(enabled){debug.composite=Boolean(enabled);}
 let renderer, scene, camera, ghoul, ghost, lamps, emp, ticks, ir, tv, analog, pvs;
@@ -138,11 +138,16 @@ function ghoulInView() {
 }
 
 
-/* ─── setup (runs once, on the first START) ─── */
+/* ─── the screen (runs at page load) ───────── */
 
-function setup() {
+/* The renderer and the NTSC pass come up straight away, so the title
+   screen is a dead channel: real composite snow, no signal. The house
+   itself is built on the first START (setup). */
+function initGL() {
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    // no antialiasing on the page itself: the scene is drawn (antialiased)
+    // into the NTSC pass's own picture, and only a flat quad reaches the page
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
   } catch (e) {
     frame.classList.add('no-gl');
     return false;
@@ -156,6 +161,39 @@ function setup() {
   renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = EXPOSURE;
+  analog = createAnalogPass(renderer, {receiverParameters:{comb:true}});
+  const testInterference = Number(new URLSearchParams(location.search).get('interference'));
+  if (Number.isFinite(testInterference)) analog.controls.interference = Math.max(0, Math.min(1, testInterference));
+  const recordingURL=new URLSearchParams(location.search).get('signal');
+  if(recordingURL){
+    openSignalURL(recordingURL).then(async clip=>{
+      await clip.prime();
+      if(clip.error){clip.dispose();throw new Error(clip.error);}
+      const gain=Number(new URLSearchParams(location.search).get('signalGain') ?? 0.25);
+      clip.gain=Number.isFinite(gain)?Math.max(0,Math.min(2,gain)):0.25;
+      analog.setClip(clip);
+    }).catch(error=>console.error('Signal recording:',error.message));
+  }
+  new ResizeObserver(fit).observe(canvas);
+  fit();
+  if (new URLSearchParams(location.search).has('debug')) window.crazyhouse = { renderer, analog };   // filled in properly on START
+  renderer.setAnimationLoop(loop);
+  return true;
+}
+
+function fit() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  renderer.getDrawingBufferSize(buffer);
+  analog.setSize?.(buffer.x,buffer.y);
+  if (ghost) ghost.setSize(analog.picture.width,analog.picture.height);
+  if (camera) { camera.aspect = w / h; camera.updateProjectionMatrix(); }
+}
+
+/* ─── setup (runs once, on the first START) ─── */
+
+function setup() {
   scene = buildWorld();
   const worldRoots = [...scene.children];      // the house and yard (ghoul1 and the EMP come later)
   lamps = scene.userData.lamps;
@@ -188,19 +226,6 @@ function setup() {
     if (o.shadow) { o.shadow.camera.layers.enable(GHOST_LAYER); o.shadow.camera.layers.enable(CULL_LAYER); }
   });
   ghost = createGhostPass(renderer);
-  analog = createAnalogPass(renderer, {receiverParameters:{comb:true}});
-  const testInterference = Number(new URLSearchParams(location.search).get('interference'));
-  if (Number.isFinite(testInterference)) analog.controls.interference = Math.max(0, Math.min(1, testInterference));
-  const recordingURL=new URLSearchParams(location.search).get('signal');
-  if(recordingURL){
-    openSignalURL(recordingURL).then(async clip=>{
-      await clip.prime();
-      if(clip.error){clip.dispose();throw new Error(clip.error);}
-      const gain=Number(new URLSearchParams(location.search).get('signalGain') ?? 0.25);
-      clip.gain=Number.isFinite(gain)?Math.max(0,Math.min(2,gain)):0.25;
-      analog.setClip(clip);
-    }).catch(error=>console.error('Signal recording:',error.message));
-  }
   applyLightBudget(new THREE.Vector3(...CAMS[0].pos));     // before anything's drawn, so shaders are built for the budget
   // each window's reflection: one small snapshot apiece, taken now, never again
   captureReflections(renderer, scene);
@@ -210,17 +235,6 @@ function setup() {
   pvs = buildPVS(renderer, scene, worldRoots, CAMS, CULL_LAYER);
   scene.userData.pvs = pvs;
 
-  const fit = () => {
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    if (!w || !h) return;
-    renderer.setSize(w, h, false);
-    renderer.getDrawingBufferSize(buffer);
-    analog.setSize?.(buffer.x,buffer.y);
-    ghost.setSize(analog.picture.width,analog.picture.height);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-  };
-  new ResizeObserver(fit).observe(canvas);
   fit();
 
   CAMS.forEach(() => dots.appendChild(document.createElement('i')));
@@ -238,40 +252,54 @@ function setup() {
     import('./debug.js?v=20').then(m => m.createDebug(api));
   }
 
-  renderer.setAnimationLoop(now => {
-    if (state !== 'playing') return;
-    // seconds since the last frame, capped so a hidden tab doesn't make him jump
-    const dt = Math.min((now - lastFrame) / 1000 || 0, 0.1);
-    lastFrame = now;
-    analog.stats.renderFrames=(analog.stats.renderFrames??0)+1;
-    if(analog.stats.renderStart===undefined)analog.stats.renderStart=now;
-    const renderElapsed=now-analog.stats.renderStart;
-    if(renderElapsed>=1000){analog.stats.renderFPS=analog.stats.renderFrames*1000/renderElapsed;analog.stats.renderFrames=0;analog.stats.renderStart=now;}
-    if (ghoul.enabled) ghoul.update(dt, camAt);
-    else ghoul.presence = 0;
-    emp.update(dt);
-    tv.update(dt);
-    analog.controls.monochrome = night;
-    if (debug.tick) debug.tick(dt);
-    ir.position.copy(camera.position);
-    // free cam or a changed FOV can see anything, so cull nothing then
-    pvs.apply(debug.free || debug.fov || debug.fp ? null : camIndex);
-    if (!debug.unlit) applyLightBudget(camera.position);        // lighting off (debug) keeps every light off
-    updateView();
-    for (const tick of ticks) tick(dt);
-    tickEmp();
-    refreshShadows();
-    tickClock();
-    const target = analog.picture;
-    const height = analog.picture.height;
-    renderer.setRenderTarget(target);
-    renderer.render(scene, camera);
-    // blur scales with the picture, so it looks the same at any size
-    if (ghoul.enabled && ghoulInView()) ghost.render(scene, camera, ghoul.presence, ghoul.blur * height * 0.022, target);
-    if (debug.composite) analog.render(now / 1000);
-    else analog.presentClean();
-  });
   return true;
+}
+
+/* ─── every frame ───────────────────────────── */
+
+const GLITCH = 0.45;           // seconds of signal trouble when the feed switches cams
+const FISHEYE = 0.16;          // the cams' wide lens (0 is a flat picture)
+let glitch = 0;
+function loop(now) {
+  // seconds since the last frame, capped so a hidden tab doesn't make him jump
+  const dt = Math.min((now - lastFrame) / 1000 || 0, 0.1);
+  lastFrame = now;
+  if (state !== 'playing' || !scene) {
+    // the title: a dead channel, nothing but snow
+    Object.assign(analog.controls, { signalLevel: 1, snow: 0.04, glitch: 0, fisheye: 0, monochrome: false });
+    analog.snow(now / 1000);
+    analog.render(now / 1000);
+    return;
+  }
+  glitch = Math.max(0, glitch - dt);
+  Object.assign(analog.controls, { signalLevel: 1, snow: 0, glitch: glitch / GLITCH, fisheye: debug.fp || debug.free ? 0 : FISHEYE });
+  analog.stats.renderFrames=(analog.stats.renderFrames??0)+1;
+  if(analog.stats.renderStart===undefined)analog.stats.renderStart=now;
+  const renderElapsed=now-analog.stats.renderStart;
+  if(renderElapsed>=1000){analog.stats.renderFPS=analog.stats.renderFrames*1000/renderElapsed;analog.stats.renderFrames=0;analog.stats.renderStart=now;}
+  if (ghoul.enabled) ghoul.update(dt, camAt);
+  else ghoul.presence = 0;
+  emp.update(dt);
+  tv.update(dt);
+  analog.controls.monochrome = night;
+  if (debug.tick) debug.tick(dt);
+  ir.position.copy(camera.position);
+  // free cam or a changed FOV can see anything, so cull nothing then
+  pvs.apply(debug.free || debug.fov || debug.fp ? null : camIndex);
+  if (!debug.unlit) applyLightBudget(camera.position);        // lighting off (debug) keeps every light off
+  updateView();
+  for (const tick of ticks) tick(dt);
+  tickEmp();
+  refreshShadows();
+  tickClock();
+  const target = analog.picture;
+  const height = analog.picture.height;
+  renderer.setRenderTarget(target);
+  renderer.render(scene, camera);
+  // blur scales with the picture, so it looks the same at any size
+  if (ghoul.enabled && ghoulInView()) ghost.render(scene, camera, ghoul.presence, ghoul.blur * height * 0.022, target);
+  if (debug.composite) analog.render(now / 1000);
+  else analog.presentClean();
 }
 
 /* ─── cams ──────────────────────────────────── */
@@ -287,10 +315,17 @@ function showCam(i) {
   camera.updateProjectionMatrix();
   camera.lookAt(...c.look);
 
-  camNum.textContent = 'cam ' + (camIndex + 1);
+  camNum.textContent = 'CAM ' + String(camIndex + 1).padStart(2, '0');
   camName.textContent = c.name;
   [...dots.children].forEach((d, n) => d.classList.toggle('on', n === camIndex));
 
+  // the feed switching over: the signal breaks up for a moment
+  glitch = GLITCH;
+  if (!debug.composite) {
+    frame.classList.remove('cut');
+    void frame.offsetWidth;
+    frame.classList.add('cut');
+  }
 }
 
 const next = () => showCam(camIndex + 1);
@@ -298,15 +333,11 @@ const prev = () => showCam(camIndex - 1);
 
 /* ─── the clock (night shift starts at midnight) ─── */
 
+// a timecode on the feed: hours, minutes, seconds and frames (30 a second)
 function tickClock() {
-  const secs = Math.floor((performance.now() - shiftStart) / 1000);
-  const h24 = Math.floor(secs / 3600) % 24;
-  const m = Math.floor(secs / 60) % 60;
-  const s = secs % 60;
-  const h12 = h24 % 12 || 12;
+  const t = (performance.now() - shiftStart) / 1000;
   const pad = n => String(n).padStart(2, '0');
-  const text = `${h12}:${pad(m)}:${pad(s)} ${h24 < 12 ? 'am' : 'pm'}`;
-  if (clock.textContent !== text) clock.textContent = text;
+  clock.textContent = `${pad(Math.floor(t / 3600) % 24)}:${pad(Math.floor(t / 60) % 60)}:${pad(Math.floor(t) % 60)}:${pad(Math.floor(t * 30) % 30)}`;
 }
 
 /* ─── the EMP ───────────────────────────────── */
@@ -343,7 +374,7 @@ function tickEmp() {
 
 /* Like a real security cam: switching to night vision turns on an
    infrared light at the camera that floods the room it's watching,
-   and the picture gets brighter and monochrome. */
+   and the picture gets brighter, green and grainy. */
 const IR_STRENGTH = 900;
 const NV_GAIN = 3;            // how much brighter the picture gets
 let night = false;
@@ -359,11 +390,27 @@ function toggleNight() {
   renderer.toneMappingExposure = EXPOSURE * (night ? NV_GAIN : 1);
 }
 
+// a tile of random grain for the night-vision layer, made once
+(function makeGrain() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 160;
+  const x = c.getContext('2d');
+  const img = x.createImageData(160, 160);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = Math.random() * 255;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = 34;
+  }
+  x.putImageData(img, 0, 0);
+  frame.style.setProperty('--grain', `url(${c.toDataURL()})`);
+})();
+
 /* ─── start / quit ──────────────────────────── */
 
 function start() {
   if (state === 'playing') return;
-  if (!renderer && !setup()) return;
+  if (!renderer) return;
+  if (!scene) setup();
   state = 'playing';
   tv.play();
   shiftStart = performance.now();
@@ -427,3 +474,5 @@ addEventListener('blur', () => analog?.heldSignals.clear());
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) analog?.heldSignals.clear();
 });
+
+initGL();

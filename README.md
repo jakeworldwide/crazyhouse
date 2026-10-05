@@ -315,9 +315,27 @@ walls, a red front door, and so on. They're all in `MAT` near the top of
 
 Like a real security cam: switching it on turns on an infrared light at
 the camera that floods the room it's watching, and the picture goes
-bright and monochrome. Lamps blow out and ghoul1's pupils glow.
-Strength is `IR_STRENGTH` and `NV_GAIN` in `main.js`; source video
-becomes monochrome before composite encoding.
+bright, green and grainy, with dark corners (the signal goes monochrome
+before composite encoding, then `.night` in the CSS tints it and lays
+grain over it). Lamps blow out and ghoul1's pupils glow. Strength is
+`IR_STRENGTH` and `NV_GAIN` in `main.js`.
+
+## The feed
+
+- **Title screen**: a dead channel. The renderer and the composite pass
+  start at page load, and random grey goes out through the signal and
+  back (`analog.snow()`), so the snow smears and speckles like real NTSC
+  snow. The house is built on the first START.
+- **Switching cams**: the signal breaks up for a moment (`GLITCH` in
+  `main.js`): it drops and flickers so the picture loses sync and tears,
+  with snow, interference and a hum bar, then settles. With the
+  composite bypassed (debug) it's a quick drop to black instead.
+- **Lens**: the cams have a subtle fisheye (`FISHEYE` in `main.js`, 0 is
+  flat), applied to the picture before it's encoded, like a real lens.
+  First person and the free cam stay flat.
+- **On-screen text**: the cam number, its name, REC and a timecode
+  (hours, minutes, seconds, frames since midnight) in white on black,
+  in VT323, like a VCR's own text.
 
 ## ghoul1
 
@@ -472,7 +490,7 @@ holding W still injects mains hum manually.
 Merged remote color, glass/windows, EMP, night vision, and debug features.
 B fires EMP (the button still works).
 In debug free-camera mode, W and Shift belong to movement. Night mode uses
-the IR lamp, exposure, and monochrome encoding, without CSS grain/vignette.
+the IR lamp, exposure, monochrome encoding, and the CSS green, grain and vignette.
 
 Automatic hum uses 15% of the manual W amplitude (±0.0375 Lab
 voltage). `crazyhouse.analog.controls.automaticHumGain` adjusts this ratio;
@@ -480,7 +498,7 @@ manual W remains at full amplitude.
 
 The `?debug` panel has a **bypass composite** toggle. Bypass renders the
 same scene render target through a clean presentation shader, skipping encoding,
-sync recovery, and decoding. The game starts with composite bypassed.
+sync recovery, and decoding. The game starts with the composite on.
 The kitchen TV faces 45° toward the living room; its glow follows the angle.
 
 Source Y/U/V is bandwidth-limited before modulation using the exposed filter

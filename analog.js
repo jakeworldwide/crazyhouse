@@ -48,15 +48,24 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
     const receiver=lowPassWeights(controls.receiverChromaMHz,315/88*4,controls.receiverTaps,33);
     chromaWeights.forEach((v,i)=>v.set(2*receiver[i]*Math.cos((i-16)*Math.PI/2),2*receiver[i]*Math.sin((i-16)*Math.PI/2)));
   }
-  const uniforms = {sourceSetup:{value:7.5},sourceChromaGain:{value:1},notchSpacing:{value:2},cleanView:{value:0}, sourceWeights:{value:sourceWeights},chromaWeights:{value:chromaWeights}, videoMode:{value:videoSource?1:0}, videoSource:{value:videoSource??picture.texture}, picture:{value:picture.texture}, source:{value:filtered.texture},  signal:{value:signal.texture}, injection:{value:picture.texture}, injectionGain:{value:0}, time:{value:0}, interference:{value:0}, noise:{value:0.004}, timing:{value:timingTexture}, humGain:{value:0}, testGain:{value:1}, exposure:{value:0.75}, monochrome:{value:0}, humPhase:{value:0}, frameParity:{value:0}, comb:{value:0}, colorKiller:{value:1}, receiverSetup:{value:7.5}, clipPrevious:{value:picture.texture}, clipHasPrevious:{value:0}, clipPreviousStart:{value:-1e20}, clipCurrent:{value:picture.texture}, clipNext:{value:picture.texture}, clipEnabled:{value:0}, clipHasNext:{value:0}, clipGain:{value:0}, clipOffset:{value:0}, clipRatio:{value:1}, clipNextStart:{value:1e20}, clipEnd:{value:1e20}, clipSamples:{value:1}, clipWidth:{value:1}, clipLines:{value:480}, clipFilter:{value:clipFilter} };
+  const uniforms = {sourceSetup:{value:7.5},sourceChromaGain:{value:1},notchSpacing:{value:2},cleanView:{value:0}, sourceWeights:{value:sourceWeights},chromaWeights:{value:chromaWeights}, videoMode:{value:videoSource?1:0}, videoSource:{value:videoSource??picture.texture}, picture:{value:picture.texture}, source:{value:filtered.texture},  signal:{value:signal.texture}, injection:{value:picture.texture}, injectionGain:{value:0}, time:{value:0}, interference:{value:0}, noise:{value:0.004}, timing:{value:timingTexture}, humGain:{value:0}, testGain:{value:1}, exposure:{value:0.75}, monochrome:{value:0}, signalLevel:{value:1}, fisheye:{value:0}, aspect:{value:16/9}, humPhase:{value:0}, frameParity:{value:0}, comb:{value:0}, colorKiller:{value:1}, receiverSetup:{value:7.5}, clipPrevious:{value:picture.texture}, clipHasPrevious:{value:0}, clipPreviousStart:{value:-1e20}, clipCurrent:{value:picture.texture}, clipNext:{value:picture.texture}, clipEnabled:{value:0}, clipHasNext:{value:0}, clipGain:{value:0}, clipOffset:{value:0}, clipRatio:{value:1}, clipNextStart:{value:1e20}, clipEnd:{value:1e20}, clipSamples:{value:1}, clipWidth:{value:1}, clipLines:{value:480}, clipFilter:{value:clipFilter} };
   const material = fragmentShader => new THREE.ShaderMaterial({uniforms, vertexShader:VERT, fragmentShader, depthTest:false, depthWrite:false, toneMapped:false});
   const prepare = material(`
     uniform sampler2D picture,videoSource;uniform float videoMode;
-    uniform float monochrome,cleanView;
+    uniform float monochrome,cleanView,fisheye,aspect;
     ${THREE.ShaderChunk.tonemapping_pars_fragment.replaceAll('toneMappingExposure','exposure')}
     varying vec2 vUv;
+    // the cam's wide lens: a gentle barrel, the left and right edges kept in frame, the corners falling off to black
+    vec2 lens(vec2 uv){
+      vec2 c=(uv-.5)*vec2(aspect,1.);
+      float edge=.25*aspect*aspect;
+      c*=(1.+fisheye*dot(c,c))/(1.+fisheye*edge);
+      return c/vec2(aspect,1.)+.5;
+    }
     void main(){
-      vec3 rgb=ACESFilmicToneMapping(texture2D(picture,vUv).rgb);
+      vec2 uv=lens(vUv);
+      float inside=smoothstep(0.,.004,uv.x)*smoothstep(0.,.004,uv.y)*smoothstep(0.,.004,1.-uv.x)*smoothstep(0.,.004,1.-uv.y);
+      vec3 rgb=ACESFilmicToneMapping(texture2D(picture,clamp(uv,0.,1.)).rgb)*inside;
       rgb=mix(rgb*12.92,1.055*pow(rgb,vec3(1./2.4))-0.055,step(vec3(0.0031308),rgb));
       if(videoMode>.5)rgb=texture2D(videoSource,vec2(vUv.x,1.-vUv.y)).rgb;
       float y=dot(rgb,vec3(0.299,0.587,0.114));
@@ -78,7 +87,7 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
   uniforms.unfiltered={value:source.texture};
   const encode = material(`
     uniform sampler2D source,injection,clipCurrent,clipNext,clipPrevious; uniform float time,interference,noise,injectionGain;
-    uniform float humGain,humPhase,testGain,frameParity,sourceSetup,sourceChromaGain;
+    uniform float humGain,humPhase,testGain,frameParity,sourceSetup,sourceChromaGain,signalLevel;
     uniform float clipHasPrevious,clipPreviousStart,clipEnabled,clipHasNext,clipGain,clipOffset,clipRatio,clipNextStart,clipEnd,clipSamples,clipWidth,clipLines;
     uniform float clipFilter[17];
     varying vec2 vUv;
@@ -121,6 +130,7 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
           s=sourceSetup/140.+(5./7.-sourceSetup/140.)*(yuv.x+sourceChromaGain*(yuv.y*cos(phase)+yuv.z*sin(phase)));
         }
       }
+      s*=signalLevel;                                   // a weak or missing signal: sync and picture fade under the noise
       float n=hash(vec2(x+floor(time*60.)*17.,line))-0.5;
       // A continuous interfering oscillator, indexed by actual sample time.
       // 227.5 carrier cycles per line makes phase alternate on adjacent lines.
@@ -185,7 +195,7 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
   // Compile the clean presentation variant during setup, not on the first toggle.
   const previousTarget=renderer.getRenderTarget();quad.material=prepare;
   renderer.setRenderTarget(null);renderer.compile(scene,camera);renderer.setRenderTarget(previousTarget);quad.material=encode;
-  const controls={...defaults,receiverOverrides:{},noise:0,  interference:0,  injection:null, injectionGain:0, testGain:1, automaticHum:false, automaticHumGain:0.15, monochrome:false};
+  const controls={...defaults,receiverOverrides:{},noise:0,  interference:0,  injection:null, injectionGain:0, testGain:1, automaticHum:false, automaticHumGain:0.15, monochrome:false, signalLevel:1, glitch:0, fisheye:0, snow:0};
   const heldSignals = new Set();
   let clip=null;
   // Alternate quiet gaps and live mains injection; both last 1–5 seconds.
@@ -197,6 +207,7 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
   function presentClean(){
     uniforms.exposure.value=renderer.toneMappingExposure;
     uniforms.monochrome.value=controls.monochrome?1:0;
+    uniforms.fisheye.value=controls.fisheye;
     uniforms.cleanView.value=1;
     const target=renderer.getRenderTarget();quad.material=prepare;
     renderer.setRenderTarget(null);renderer.render(scene,camera);renderer.setRenderTarget(target);
@@ -250,9 +261,14 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
     uniforms.humPhase.value=((waveformSeconds*60)%1+1)%1;
     uniforms.injection.value=controls.injection || picture.texture;
     uniforms.injectionGain.value=controls.injection ? controls.injectionGain : 0;
-    uniforms.noise.value=controls.noise;
+    // a glitch (0..1, switching cams): the signal drops and flickers, snow and a hum bar come up
+    const glitch=Math.max(0,Math.min(1,controls.glitch));
+    uniforms.noise.value=controls.noise+0.35*glitch+controls.snow;
     uniforms.frameParity.value=signalFrame%2;
-    uniforms.interference.value=controls.interference;
+    uniforms.interference.value=controls.interference+0.6*glitch;
+    uniforms.signalLevel.value=controls.signalLevel*(1-0.85*glitch*(0.5+0.5*Math.random()));
+    if(glitch>0)uniforms.humGain.value=Math.max(uniforms.humGain.value,glitch);
+    uniforms.fisheye.value=controls.fisheye;
     const target=renderer.getRenderTarget();
     quad.material=prepare;renderer.setRenderTarget(source);renderer.render(scene,camera);
     quad.material=bandlimit;renderer.setRenderTarget(filtered);renderer.render(scene,camera);
@@ -278,6 +294,18 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
       const elapsed=performance.now()-statsStart;if(elapsed>=1000){stats.signalFPS=statsFrames*1000/elapsed;statsFrames=0;statsStart=performance.now();}
     }).catch(error=>{stats.error=error.message;console.error('Composite receiver:',error);}).finally(()=>{inFlight--;});
     show();
+  }
+  // a dead channel (the title): random grey fills the picture, then goes out
+  // through the signal and back like anything else, so it smears and speckles
+  // the way NTSC snow does
+  const snowMaterial=new THREE.ShaderMaterial({uniforms:{time:{value:0}},vertexShader:VERT,depthTest:false,depthWrite:false,toneMapped:false,fragmentShader:`
+    uniform float time;varying vec2 vUv;
+    float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    void main(){vec2 px=floor(vUv*vec2(640.,240.));float v=hash(px+fract(time*7.31)*913.);gl_FragColor=vec4(vec3(pow(v,2.4)*0.9),1.);}`});
+  function snow(seconds){
+    snowMaterial.uniforms.time.value=seconds;
+    const target=renderer.getRenderTarget();quad.material=snowMaterial;
+    renderer.setRenderTarget(picture);renderer.render(scene,camera);renderer.setRenderTarget(target);
   }
   function setClip(next){
     clip?.dispose();clip=next;stalledTime=null;
@@ -306,6 +334,7 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
     displaySize={width,height};
     const sceneWidth=Math.max(1,Math.round(width*controls.sceneScale)),sceneHeight=Math.max(1,Math.round(height*controls.sceneScale));
     if(picture.width!==sceneWidth||picture.height!==sceneHeight)picture.setSize(sceneWidth,sceneHeight);
+    uniforms.aspect.value=sceneWidth/sceneHeight;
     const outputWidth=controls.displayWidth?width:720;
     if(decoded.width!==outputWidth)decoded.setSize(outputWidth,H);
     const sourceFilter=controls.sourceLinear?THREE.LinearFilter:THREE.NearestFilter;
@@ -318,5 +347,5 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
   function resetParameters(){Object.assign(controls,defaults,{receiverOverrides:{},noise:0,interference:0,testGain:1,automaticHum:false,automaticHumGain:.15});setSize(displaySize.width,displaySize.height);}
   function getReceiverParameters(){return {gain:1,bias:0,headroom:0,noise:0,slew:0,bandwidth:0,comb:false,clamp:true,colorKiller:true,autoSlice:true,threshold:-.12,tracking:.8,colorTracking:.5,holdPPM:0,setupIRE:7.5,...receiverDefaults,...receiverParameters,...(clip?.manifest.receiverParameters??{}),...controls.receiverOverrides};}
   setSize(displaySize.width,displaySize.height);
-  return {picture, controls, render, presentClean, heldSignals, setClip, setSize, resetParameters, getReceiverParameters, defaults, stats, get clip(){return clip;}};
+  return {picture, controls, render, presentClean, snow, heldSignals, setClip, setSize, resetParameters, getReceiverParameters, defaults, stats, get clip(){return clip;}};
 }

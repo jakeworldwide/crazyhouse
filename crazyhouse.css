@@ -40,9 +40,10 @@ canvas {
   display: block;
 }
 
-/* game layers stay hidden until START */
-.hud, .arrow, .emp, .nv, canvas { opacity: 0; pointer-events: none; }
-.playing canvas, .playing .hud { opacity: 1; }
+/* game layers stay hidden until START (the canvas shows the title's static) */
+.hud, .arrow, .emp, .nv { opacity: 0; pointer-events: none; }
+canvas { pointer-events: none; }
+.playing .hud { opacity: 1; }
 .playing .arrow { opacity: 0.55; pointer-events: auto; }
 .playing .emp, .playing .nv { opacity: 1; pointer-events: auto; }
 
@@ -54,7 +55,7 @@ canvas {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #000;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.7) 25%, rgba(0, 0, 0, 0.25) 80%);   /* the static, darker behind the name */
   transition: opacity 0.45s ease;
 }
 .playing .title { opacity: 0; pointer-events: none; }
@@ -66,23 +67,25 @@ canvas {
   line-height: 1;
   text-transform: lowercase;
   margin-top: -3cqw;
+  text-shadow: 0 0 1.2cqw #000, 0 0 3cqw #000;
 }
 
 .start {
-  margin-top: 5.5cqw;
+  margin-top: 11cqw;
   font: inherit;
-  font-size: max(13px, 1.9cqw);
+  font-size: max(11px, 1.35cqw);
   font-weight: 500;
   letter-spacing: 0.42em;
   text-indent: 0.42em;          /* balances the trailing letter-space */
   color: #fff;
   background: transparent;
-  border: 1px solid #fff;
-  padding: 1.1cqw 3cqw;
+  border: none;
+  padding: 0.6cqw 1.2cqw;
   cursor: pointer;
+  text-shadow: 0 0 0.8cqw #000, 0 0 0.3cqw #000;
   animation: pulse 2.8s ease-in-out infinite;
 }
-.start:hover, .start:focus-visible { outline: none; background: #fff; color: #000; }
+.start:hover, .start:focus-visible { outline: none; animation: none; opacity: 1; }
 
 @keyframes pulse {
   0%, 100% { opacity: 1;    transform: scale(1); }
@@ -106,15 +109,17 @@ canvas {
   position: absolute;
   inset: 0;
   padding: 2.6cqw 3.2cqw;
-  font-size: max(12px, 1.9cqw);
-  line-height: 1.15;
-  font-variant-numeric: lining-nums tabular-nums;
-  text-shadow: 0 0 0.4cqw #000, 0 0 0.4cqw #000;
+  font-family: 'VT323', ui-monospace, Menlo, monospace;
+  font-size: max(13px, 2.2cqw);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
 }
 
-.hud-cam { position: absolute; top: 2.6cqw; left: 3.2cqw; display: flex; flex-direction: column; }
-#camNum { font-size: 1.45em; font-weight: 500; }
-#camName { opacity: 0.7; }
+/* the camera's own on-screen text: white on black boxes, like a VCR's */
+.hud-cam > span, .hud-rec, .hud-clock { background: #000; color: #fff; padding: 0.12em 0.4em 0.04em; }
+.hud-cam { position: absolute; top: 2.6cqw; left: 3.2cqw; display: flex; flex-direction: column; align-items: flex-start; gap: 0.2em; }
+#camName { text-transform: uppercase; }
 
 .hud-rec {
   position: absolute;
@@ -124,6 +129,7 @@ canvas {
   align-items: center;
   gap: 0.45em;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 .hud-rec i {
   width: 0.55em;
@@ -182,6 +188,17 @@ canvas {
   filter: drop-shadow(0 0 2px #000);
 }
 
+/* ─── switching cams with the composite bypassed: a quick drop to black ─── */
+.cut-flash {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+.cut .cut-flash { animation: cut 0.22s steps(3, jump-none); }
+@keyframes cut { from { opacity: 1; } to { opacity: 0; } }
+
 /* ─── no WebGL ──────────────────────────────── */
 .no-gl-msg {
   display: none;
@@ -230,8 +247,33 @@ canvas {
   0% { opacity: 0.55; } 20% { opacity: 0; } 40% { opacity: 0.3; } 60% { opacity: 0; } 80% { opacity: 0.12; } 100% { opacity: 0; }
 }
 
-/* Night mode uses the camera IR lamp and monochrome source encoding. */
-.nv-layer { display: none; }
+/* ─── night vision ──────────────────────────── */
+/* The camera's own infrared light does the real work (main.js), and the
+   signal goes monochrome; this makes it look like an IR feed: green,
+   grainy, vignetted. */
+.night canvas {
+  filter: grayscale(1) sepia(1) hue-rotate(52deg) saturate(2.4) contrast(1.15) brightness(1.05);
+}
+.nv-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: none;
+  background:
+    radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.75) 100%),
+    var(--grain) repeat;
+  background-size: 100% 100%, 160px 160px;
+  mix-blend-mode: normal;
+  animation: grain 0.4s steps(4) infinite;
+}
+.night .nv-layer { display: block; }
+@keyframes grain {
+  0%   { background-position: 0 0, 0 0; }
+  25%  { background-position: 0 0, -37px 21px; }
+  50%  { background-position: 0 0, 53px -44px; }
+  75%  { background-position: 0 0, -18px -63px; }
+  100% { background-position: 0 0, 0 0; }
+}
 
 .nv {
   position: absolute;
