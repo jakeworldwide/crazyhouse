@@ -12,11 +12,11 @@ import { createGhoul } from './ghoul.js?v=13';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
-import { createAnalogPass } from './analog.js?v=36';
+import { createAnalogPass } from './analog.js?v=37';
 import { createOsd } from './osd.js?v=5';
-import { createSounds } from './sound.js?v=3';
-import { createCraziness, WARNING, OVERLOAD } from './craziness.js?v=1';
-import { CRAZINESS } from './craziness-list.js?v=3';
+import { createSounds } from './sound.js?v=4';
+import { createCraziness, WARNING, OVERLOAD } from './craziness.js?v=2';
+import { CRAZINESS } from './craziness-list.js?v=5';
 
 
 const $ = id => document.getElementById(id);
@@ -275,12 +275,14 @@ function setup() {
     const api = {
       THREE, scene, camera, renderer, CAMS, showCam, ghoul, lamps, fireEmp, toggleNight, frame, debug, tv, analog, pvs,
       craziness, shiftSeconds: () => shiftSeconds(), skipHour: () => { shiftStart -= HOUR * 1000; }, HOUR,
+      showWarning: () => showWarning(), showScramble: () => scramble(null),
+      win: () => state === 'playing' && win(performance.now()), lose: () => state === 'playing' && die(performance.now()),
       resizeAnalog: fit,
       setComposite,
       isNight: () => night, camIndex: () => camIndex
     };
     window.crazyhouse = api;
-    import('./debug.js?v=23').then(m => m.createDebug(api));
+    import('./debug.js?v=24').then(m => m.createDebug(api));
   }
 
   return true;
@@ -306,17 +308,19 @@ function loop(now) {
   // seconds since the last frame, capped so a hidden tab doesn't make him jump
   const dt = Math.min((now - lastFrame) / 1000 || 0, 0.1);
   lastFrame = now;
-  if (state === 'dead') {
-    // craziness overload: nothing but snow, and the way out
-    Object.assign(analog.controls, { signalLevel: 1, snow: 0.06, glitch: 0, fisheye: 0, monochrome: false, twitchY: -1, twitchW: 0.03, twitchNoise: 0 });
-    if (osd.update('dead', now)) osdTex.needsUpdate = true;
+  if (state === 'dead' || state === 'won') {
+    // craziness overload: nothing but snow, and the way out; or 6 AM: white, and the glory
+    const won = state === 'won';
+    Object.assign(analog.controls, { signalLevel: 1, snow: won ? 0.02 : 0.06, glitch: 0, fisheye: 0, monochrome: false, twitchY: -1, twitchW: 0.03, twitchNoise: 0, scramble: 0, whiteout: won ? 1 : 0 });
+    if (won && now > wonAt + REVEL * 1000) wonButtons.hidden = false;
+    if (osd.update(state, now)) osdTex.needsUpdate = true;
     analog.snow(now / 1000);
     present(now);
     return;
   }
-  if ((state !== 'playing' && state !== 'dying') || !scene) {
+  if (!['playing', 'dying', 'winning'].includes(state) || !scene) {
     // the title: a dead channel, nothing but snow
-    Object.assign(analog.controls, { signalLevel: 1, snow: 0.04, glitch: 0, fisheye: 0, monochrome: false, twitchW: 0.03, twitchNoise: 0 });
+    Object.assign(analog.controls, { signalLevel: 1, snow: 0.04, glitch: 0, fisheye: 0, monochrome: false, twitchW: 0.03, twitchNoise: 0, scramble: 0, whiteout: 0 });
     if (osd.update('title', now)) osdTex.needsUpdate = true;
     titleTwitch(now);
     analog.snow(now / 1000);
@@ -324,7 +328,7 @@ function loop(now) {
     return;
   }
   glitch = Math.max(0, glitch - dt);
-  Object.assign(analog.controls, { signalLevel: 1, snow: 0, glitch: glitch / GLITCH, fisheye: debug.fp ? 0 : FISHEYE });     // (the free cam keeps the lens, so its view matches the cams')
+  Object.assign(analog.controls, { signalLevel: 1, snow: 0, glitch: glitch / GLITCH, fisheye: debug.fp ? 0 : FISHEYE, scramble: 0, whiteout: 0 });     // (the free cam keeps the lens, so its view matches the cams')
   // night vision switching: the picture goes out completely for a moment (anything
   // can happen behind it), then a wide band of tracking trouble rolls up as it comes back
   const nvT = (now - sweepStart) / 1000;
@@ -355,7 +359,7 @@ function loop(now) {
   refreshShadows();
   tickClock();
   tickReport(now);
-  if (osd.update('hud', now, analog.controls.fisheye)) osdTex.needsUpdate = true;
+  if (osd.update(osdGroup, now, analog.controls.fisheye)) osdTex.needsUpdate = true;
   const target = analog.picture;
   const height = analog.picture.height;
   renderer.setRenderTarget(target);
@@ -570,46 +574,84 @@ function tickReport(now) {
 
 /* ─── craziness ─────────────────────────────── */
 
-/* Confirmed: the feed scrambles violently for a couple of seconds with
-   "that WAS crazy" over it, and halfway through, while nobody can see,
-   the craziness in that room is put right. */
+/* Confirmed: the picture scrambles violently for a couple of seconds
+   with "that WAS crazy" held steady over it (the text goes on after the
+   picture is torn up, so it only gets the signal's fuzz), and halfway
+   through, while nobody can see, the craziness in that room is put right. */
 const SCRAMBLE = 2.4;          // seconds
-const banner = $('crazyBanner'), warning = $('crazyWarning'), deadMenu = $('deadMenu');
-let scrambleStart = -1e9, scrambleRoom = null, warnBeepAt = 0, dieStart = 0;
+const WARN_FOR = 30;           // seconds the warning blinks before it gives up (comes back if it gets crazier)
+const WIN_STATIC = 3.2;        // seconds of 6 AM static burning up to white
+const REVEL = 4;               // seconds to soak in the victory before "play again"
+const banner = $('crazyBanner'), warning = $('crazyWarning'), deadMenu = $('deadMenu'), wonMenu = $('wonMenu'), wonButtons = $('wonButtons');
+let scrambleStart = -1e9, scrambleRoom = null;
+let warnedLevel = 0, warnUntil = -1, warnBeepAt = 0;
+let dieStart = 0, winStart = 0, wonAt = 0, osdGroup = 'hud';
 function scramble(room) {
   scrambleStart = performance.now();
   scrambleRoom = room;
   banner.hidden = false;
   sounds.scramble();
-  if (!debug.composite) { frame.classList.remove('cut'); void frame.offsetWidth; frame.classList.add('cut'); }
+}
+// the warning up top, for WARN_FOR seconds of the shift
+function showWarning() { warnUntil = shiftSeconds() + WARN_FOR; }
+// whatever's in progress stops (the end of the shift, one way or the other)
+function settle() {
+  openPause(false); openReport(false);
+  reportSteps = []; reportMsg.hidden = true;
+  scrambleStart = -1e9; scrambleRoom = null; banner.hidden = true;
+  warning.hidden = true;
+}
+function die(now) {
+  settle();
+  state = 'dying'; dieStart = now;
+  frame.classList.add('over');                     // (the controls stop working)
+  sounds.overload();
+}
+function win(now) {
+  settle();
+  state = 'winning'; winStart = now;
+  frame.classList.add('over');
+  sounds.win();
 }
 
-// every frame while playing: new craziness on schedule, the scramble, the warning, overload
+// every frame while playing: new craziness on schedule, the scramble, the warning, overload, 6 AM
 function tickCraziness(now) {
-  if (state === 'playing' && !pausedAt) craziness.update(shiftSeconds(), CAMS[camIndex].name);
-  // the scramble
+  const st = shiftSeconds();
+  if (state === 'playing' && !pausedAt) craziness.update(st, CAMS[camIndex].name);
+  // the scramble: only the picture, the banner stays readable
   const sc = (now - scrambleStart) / 1000;
   if (sc < SCRAMBLE) {
-    const k = Math.min(1, sc / 0.25, (SCRAMBLE - sc) / 0.6);          // in hard, out a little softer
-    Object.assign(analog.controls, { glitch: 0.8 * k, twitchY: Math.random(), twitchW: 0.12 + 0.25 * Math.random(),
-      twitchNoise: 0.6 * k, twitchX: (Math.random() - 0.5) * 0.18 * k });
+    const k = Math.min(1, sc / 0.12, (SCRAMBLE - sc) / 0.5);          // in hard, out a little softer
+    Object.assign(analog.controls, { scramble: k, snow: 0.03 * k });
     if (scrambleRoom && sc > SCRAMBLE * 0.45) { craziness.clearRoom(scrambleRoom); scrambleRoom = null; }
   } else if (!banner.hidden) banner.hidden = true;
-  // too much going on: a warning, then craziness overload
+  // too much going on: a warning (each time it gets crazier), then craziness overload
   const level = craziness.level();
-  const warn = level >= WARNING && state === 'playing';
+  if (state === 'playing') {
+    if (level < WARNING) warnedLevel = 0;
+    else if (level > warnedLevel) { warnedLevel = level; showWarning(); }
+  }
+  const warn = state === 'playing' && st < warnUntil;
   warning.hidden = !warn || Math.floor(now / 500) % 2 === 1;                 // blinking
-  if (warn && now > warnBeepAt) { sounds.warn(); warnBeepAt = now + 5000; }
+  if (warn) warning.textContent = level >= OVERLOAD && debug.noDeath ? 'craziness overload (debug: you live)' : 'craziness rising: report it before it gets too crazy';
+  if (warn && !pausedAt && now > warnBeepAt) { sounds.warn(); warnBeepAt = now + 5000; }
   if (!warn) warnBeepAt = 0;
-  if (level >= OVERLOAD && state === 'playing') {
-    if (debug.noDeath) warning.textContent = 'craziness overload (debug: you live)';
-    else { state = 'dying'; dieStart = now; sounds.overload(); openReport(false); }
-  } else if (warn) warning.textContent = 'craziness rising: report it before it gets too crazy';
+  if (state === 'playing' && level >= OVERLOAD && !debug.noDeath) die(now);
+  // 6 AM: made it
+  if (state === 'playing' && st >= 6 * HOUR) win(now);
   // dying: the picture sinks into snow, then the way out
   if (state === 'dying') {
     const p = Math.min(1, (now - dieStart) / 2600);
     Object.assign(analog.controls, { signalLevel: 1 - p, snow: 0.4 * p, glitch: Math.min(1, p * 1.5), twitchY: Math.random(), twitchW: 0.2, twitchNoise: p, twitchX: (Math.random() - 0.5) * 0.1 * p });
-    if (p >= 1) { state = 'dead'; deadMenu.hidden = false; frame.classList.add('dead'); warning.hidden = true; banner.hidden = true; }
+    if (p >= 1) { state = 'dead'; deadMenu.hidden = false; }
+  }
+  // winning: the picture breaks up into static that burns up to white, and the words come up through it
+  osdGroup = 'hud';
+  if (state === 'winning') {
+    const t = (now - winStart) / 1000;
+    Object.assign(analog.controls, { scramble: Math.min(1, t / 1.2), whiteout: Math.min(1, Math.max(0, (t - 0.9) / 2)), snow: 0.03 });
+    if (t > 1.6) { osdGroup = 'won'; wonMenu.hidden = false; }
+    if (t >= WIN_STATIC) { state = 'won'; wonAt = now; }
   }
 }
 
@@ -618,18 +660,21 @@ function resetShift() {
   shiftStart = performance.now();
   pausedAt = 0; pausedFor = 0;
   craziness.reset();
-  scrambleStart = -1e9; scrambleRoom = null; warnBeepAt = 0;
-  banner.hidden = true; warning.hidden = true; deadMenu.hidden = true;
-  frame.classList.remove('dead');
-  reportSteps = []; reportMsg.hidden = true; openReport(false);
+  settle();
+  warnedLevel = 0; warnUntil = -1; warnBeepAt = 0;
+  deadMenu.hidden = true; wonMenu.hidden = true; wonButtons.hidden = true;
+  frame.classList.remove('over');
 }
-$('retryBt').addEventListener('click', e => {
+function playAgain(e) {
   e.currentTarget.blur();
   resetShift();
   state = 'playing';
   showCam(0);
-});
+}
+$('retryBt').addEventListener('click', playAgain);
+$('againBt').addEventListener('click', playAgain);
 $('menuBt').addEventListener('click', e => { e.currentTarget.blur(); quit(); });
+$('wonMenuBt').addEventListener('click', e => { e.currentTarget.blur(); quit(); });
 reportBtn.addEventListener('click', () => { if (reportSteps.length || state !== 'playing') return; openReport(reportList.hidden); reportBtn.blur(); });
 reportList.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { fileReport(Number(b.dataset.cam)); b.blur(); } });
 
@@ -663,9 +708,8 @@ function start() {
 
 function quit() {
   state = 'title';
-  openPause(false);
-  deadMenu.hidden = true; frame.classList.remove('dead');
-  openReport(false); reportSteps = []; reportMsg.hidden = true;
+  settle();
+  deadMenu.hidden = true; wonMenu.hidden = true; wonButtons.hidden = true; frame.classList.remove('over');
   tv.pause();
   analog.heldSignals.clear();
   frame.classList.remove('playing');
@@ -689,7 +733,7 @@ addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); start(); }
     return;
   }
-  if (state === 'dying' || state === 'dead') return;
+  if (state !== 'playing') return;                 // (dying, dead, winning, won)
   if (!pauseMenu.hidden && e.key !== 'Escape') return;
   if (/^KeyW$/.test(e.code)) {
     e.preventDefault();

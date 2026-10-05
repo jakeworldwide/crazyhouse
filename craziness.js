@@ -18,8 +18,14 @@
      2 to 4 AM:  3 or 4 an hour
      4 to 6 AM:  5 or 6 an hour
    Higher intensities unlock as the night goes on (up to 2 before 2 AM,
-   3 before 4 AM, then all of them), and nothing ever starts on the cam
-   you're watching: it waits until you look away.
+   3 before 4 AM, then all of them); the milder ones keep turning up
+   too, the newest intensity just comes up a bit more often. Nothing
+   ever starts on the cam you're watching: it waits until you look away.
+   Each craziness happens at most once a shift, so once they've all
+   happened, the rest of the night is quiet.
+
+   A craziness's cam can be a list (['foyer', 'front yard']) when it's
+   seen from more than one; reporting any of them counts.
 
    The overload level counts what's going on at once; an intensity 4
    counts double.
@@ -31,6 +37,8 @@ export const OVERLOAD = 5;     // level: craziness overload
 export function createCraziness({ list, ctx, hour }) {
   const byName = new Map(list.map(d => [d.name, d]));
   const active = new Map();                  // name -> { def, at (shift seconds) }
+  const used = new Set();                     // everything that's happened this shift (none happen twice)
+  const camsOf = d => [].concat(d.cam);
   let schedule = [];                          // shift seconds when the next ones are due
 
   const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -47,8 +55,9 @@ export function createCraziness({ list, ctx, hour }) {
 
   function touch(def) { if (def.at) ctx.moved(ctx.X(def.at[0]), ctx.Z(def.at[1])); }   // lamps near it redraw their shadows
   function start(def, t) {
-    if (active.has(def.name)) return false;
+    if (used.has(def.name)) return false;
     def.start(ctx);
+    used.add(def.name);
     active.set(def.name, { def, at: t });
     touch(def);
     return true;
@@ -64,7 +73,7 @@ export function createCraziness({ list, ctx, hour }) {
   // something new goes crazy: what's allowed this late, not already going, not on the cam you're watching
   function spawnRandom(t, watching) {
     const h = t / hour, max = h < 2 ? 2 : h < 4 ? 3 : 4;
-    const pool = list.filter(d => !active.has(d.name) && d.cam !== watching && d.intensity <= max);
+    const pool = list.filter(d => !used.has(d.name) && !camsOf(d).includes(watching) && d.intensity <= max);
     if (!pool.length) return false;
     // the higher intensities turn up more as they unlock
     const weights = pool.map(d => d.intensity === max ? 2 : 1);
@@ -78,6 +87,7 @@ export function createCraziness({ list, ctx, hour }) {
     // a new shift: everything back to normal, and a new schedule
     reset() {
       for (const name of [...active.keys()]) stop(name);
+      used.clear();
       schedule = plan();
     },
     // call every frame with the shift's seconds and the cam you're on
@@ -89,9 +99,9 @@ export function createCraziness({ list, ctx, hour }) {
       }
     },
     // what's going on in a cam's room (names)
-    inRoom: cam => [...active.values()].filter(a => a.def.cam === cam).map(a => a.def.name),
+    inRoom: cam => [...active.values()].filter(a => camsOf(a.def).includes(cam)).map(a => a.def.name),
     // reported and confirmed: it's over
-    clearRoom(cam) { for (const a of [...active.values()]) if (a.def.cam === cam) stop(a.def.name); },
+    clearRoom(cam) { for (const a of [...active.values()]) if (camsOf(a.def).includes(cam)) stop(a.def.name); },
     level: () => [...active.values()].reduce((n, a) => n + (a.def.intensity >= 4 ? 2 : 1), 0),
     active: () => [...active.keys()],
     next: () => schedule[0] ?? null,
@@ -99,6 +109,7 @@ export function createCraziness({ list, ctx, hour }) {
     start: (name, t = 0) => byName.has(name) && start(byName.get(name), t),
     spawn: t => spawnRandom(Math.max(t, 6 * hour - 1), null),                // anything at all, anywhere
     stop,
-    isActive: name => active.has(name)
+    isActive: name => active.has(name),
+    isUsed: name => used.has(name)
   };
 }

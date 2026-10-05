@@ -10,6 +10,7 @@
    scramble(): reported and confirmed, the feed tearing itself up.
    warn(): too much going on, a two-note alarm beep.
    overload(): craziness overload, the picture dying into a roar of static.
+   win(): 6 AM, the static swelling up into a bright ringing chord.
 
    Browsers only allow sound after a click or key press, so unlock()
    is called from START.
@@ -96,8 +97,8 @@ export function createSounds() {
     burst(t + 0.015, { freq: 2600, q: 0.7, gain: 0.08, attack: 0.01, decay: 0.4, sweepTo: 700, length: 0.45 });   // the picture rolling over
   }
 
-  // a tone that holds, then stops dead: freq Hz, how loud, how long
-  function tone(t, { freq = 880, gain = 0.2, length = 0.15, type = 'square', to = null }) {
+  // a tone that holds, then stops dead (or with fade, dies away the whole time): freq Hz, how loud, how long
+  function tone(t, { freq = 880, gain = 0.2, length = 0.15, type = 'square', to = null, fade = false }) {
     const o = ctx.createOscillator();
     o.type = type;
     o.frequency.setValueAtTime(freq, t);
@@ -105,7 +106,7 @@ export function createSounds() {
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(gain, t + 0.005);
-    g.gain.setValueAtTime(gain, t + length - 0.01);
+    if (!fade) g.gain.setValueAtTime(gain, t + length - 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + length);
     o.connect(g).connect(out);
     o.start(t);
@@ -143,5 +144,16 @@ export function createSounds() {
     thump(t + 2.3, { from: 80, to: 25, gain: 0.9, decay: 0.5 });
   }
 
-  return { unlock, thunk, relay, scramble, warn, overload };
+  function win() {
+    if (!ctx) return;
+    const t = ctx.currentTime + 0.005;
+    burst(t, { type: 'highpass', freq: 800, q: 0.5, gain: 0.35, attack: 1.4, decay: 1.6, sweepTo: 6000, length: 3 });   // static swelling up
+    // then it rings out clean: a big major chord, a little detuned like an old organ
+    for (const f of [261.6, 329.6, 392, 523.3, 784]) {
+      for (const d of [0.997, 1.003]) tone(t + 1.8, { freq: f * d, gain: 0.05, length: 3.2, type: 'triangle', fade: true });
+    }
+    thump(t + 1.8, { from: 70, to: 35, gain: 0.7, decay: 0.6 });
+  }
+
+  return { unlock, thunk, relay, scramble, warn, overload, win };
 }

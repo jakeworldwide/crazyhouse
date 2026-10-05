@@ -3,7 +3,9 @@
 
    Each one is an entry in CRAZINESS:
      name       craziness1, craziness2, ... (what the debug panel lists)
-     cam        the cam/room it happens in: what you report
+     cam        the cam/room it happens in: what you report (a list,
+                ['foyer', 'front yard'], if more than one cam sees it;
+                any of them counts)
      intensity  1  something moves, appears or disappears
                 2  something strange: a painting turns into a photo
                    or an advert that doesn't belong
@@ -60,6 +62,15 @@ function faceTowards(fig, x, y, z) {
   fig.rotation.y = Math.atan2(x - fig.position.x, z - fig.position.z);
   const head = fig.userData.head, hy = fig.position.y + head.position.y;
   head.rotation.x = -Math.atan2(y - hy, Math.hypot(x - fig.position.x, z - fig.position.z));
+}
+
+// a craziness that's a door (anything openable) swinging open by itself, slowly
+function opens(name, seconds = 3) {
+  let was = 0;
+  return {
+    start(ctx) { const d = ctx.find(name).userData; was = d.open; d.openTo(1, seconds); },
+    stop(ctx) { const d = ctx.find(name).userData; d.setOpen(was); d.openTo(was, 0.01); }   // (stops it mid-swing too)
+  };
 }
 
 // a craziness that's a figure standing somewhere (built once, added and taken away)
@@ -121,11 +132,11 @@ export const CRAZINESS = [
     stop: ctx => ctx.paintings.restore('valley')
   },
   {
-    name: 'craziness6', cam: 'laundry', intensity: 3, at: [554, 925],
-    note: 'A tall dark figure is standing in the corner of the laundry, watching.',
+    name: 'craziness6', cam: 'laundry', intensity: 3, at: [735, 935],
+    note: 'A tall dark figure is standing in front of the dryer, watching.',
     ...standing(ctx => {
       const f = figure(ctx.THREE, { height: 7.1 });
-      f.position.set(ctx.X(554), ctx.FLOOR, ctx.Z(925));
+      f.position.set(ctx.X(735), ctx.FLOOR, ctx.Z(935));
       const c = ctx.cam('laundry');
       faceTowards(f, c.pos[0], c.pos[1], c.pos[2]);
       return f;
@@ -169,5 +180,30 @@ export const CRAZINESS = [
       faceTowards(f, c.pos[0], c.pos[1], c.pos[2]);
       return f;
     })
+  },
+  {
+    name: 'craziness10', cam: ['foyer', 'front yard'], intensity: 1, at: [107, 648],
+    note: 'The front door creaks open on its own.',
+    ...opens('door-front', 5)
+  },
+  {
+    name: 'craziness11', cam: 'foyer', intensity: 1, at: [213, 562],
+    note: 'The coat closet has slid open.',
+    ...opens('door-coat-closet', 2.5)
+  },
+  {
+    name: 'craziness12', cam: 'kitchen', intensity: 1, at: [1020, 659],
+    note: 'The fridge door is hanging wide open.',
+    ...opens('fridge-door', 3)
+  },
+  {
+    name: 'craziness13', cam: 'laundry', intensity: 1, at: [716, 888],
+    note: 'The dryer door has swung open.',
+    ...opens('dryer-door', 2)
+  },
+  {
+    name: 'craziness14', cam: 'bathroom', intensity: 1, at: [429, 985],
+    note: 'The shower door is standing open.',
+    ...opens('door-shower', 3)
   }
 ];

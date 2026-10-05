@@ -53,11 +53,12 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
     const receiver=lowPassWeights(controls.receiverChromaMHz,315/88*4,controls.receiverTaps,33);
     chromaWeights.forEach((v,i)=>v.set(2*receiver[i]*Math.cos((i-16)*Math.PI/2),2*receiver[i]*Math.sin((i-16)*Math.PI/2)));
   }
-  const uniforms = {sourceSetup:{value:7.5},sourceChromaGain:{value:1},notchSpacing:{value:2},cleanView:{value:0}, sourceWeights:{value:sourceWeights},chromaWeights:{value:chromaWeights}, videoMode:{value:videoSource?1:0}, videoSource:{value:videoSource??picture.texture}, picture:{value:picture.texture}, source:{value:filtered.texture},  signal:{value:signal.texture}, injection:{value:picture.texture}, injectionGain:{value:0}, time:{value:0}, interference:{value:0}, noise:{value:0.004}, timing:{value:timingTexture}, humGain:{value:0}, testGain:{value:1}, exposure:{value:0.75}, monochrome:{value:0}, signalLevel:{value:1}, osd:{value:null}, osdOn:{value:0}, twitchY:{value:-1}, twitchX:{value:0}, twitchW:{value:.03}, twitchNoise:{value:0}, fisheye:{value:0}, aspect:{value:16/9}, humPhase:{value:0}, frameParity:{value:0}, comb:{value:0}, colorKiller:{value:1}, receiverSetup:{value:7.5}, clipPrevious:{value:picture.texture}, clipHasPrevious:{value:0}, clipPreviousStart:{value:-1e20}, clipCurrent:{value:picture.texture}, clipNext:{value:picture.texture}, clipEnabled:{value:0}, clipHasNext:{value:0}, clipGain:{value:0}, clipOffset:{value:0}, clipRatio:{value:1}, clipNextStart:{value:1e20}, clipEnd:{value:1e20}, clipSamples:{value:1}, clipWidth:{value:1}, clipLines:{value:480}, clipFilter:{value:clipFilter} };
+  const uniforms = {sourceSetup:{value:7.5},sourceChromaGain:{value:1},notchSpacing:{value:2},cleanView:{value:0}, sourceWeights:{value:sourceWeights},chromaWeights:{value:chromaWeights}, videoMode:{value:videoSource?1:0}, videoSource:{value:videoSource??picture.texture}, picture:{value:picture.texture}, source:{value:filtered.texture},  signal:{value:signal.texture}, injection:{value:picture.texture}, injectionGain:{value:0}, time:{value:0}, interference:{value:0}, noise:{value:0.004}, timing:{value:timingTexture}, humGain:{value:0}, testGain:{value:1}, exposure:{value:0.75}, monochrome:{value:0}, signalLevel:{value:1}, osd:{value:null}, osdOn:{value:0}, twitchY:{value:-1}, twitchX:{value:0}, twitchW:{value:.03}, twitchNoise:{value:0}, scramble:{value:0}, whiteout:{value:0}, fisheye:{value:0}, aspect:{value:16/9}, humPhase:{value:0}, frameParity:{value:0}, comb:{value:0}, colorKiller:{value:1}, receiverSetup:{value:7.5}, clipPrevious:{value:picture.texture}, clipHasPrevious:{value:0}, clipPreviousStart:{value:-1e20}, clipCurrent:{value:picture.texture}, clipNext:{value:picture.texture}, clipEnabled:{value:0}, clipHasNext:{value:0}, clipGain:{value:0}, clipOffset:{value:0}, clipRatio:{value:1}, clipNextStart:{value:1e20}, clipEnd:{value:1e20}, clipSamples:{value:1}, clipWidth:{value:1}, clipLines:{value:480}, clipFilter:{value:clipFilter} };
   const material = fragmentShader => new THREE.ShaderMaterial({uniforms, vertexShader:VERT, fragmentShader, depthTest:false, depthWrite:false, toneMapped:false});
   const prepare = material(`
     uniform sampler2D picture,videoSource;uniform float videoMode;
-    uniform float monochrome,cleanView,fisheye,aspect,osdOn,twitchY,twitchX,twitchW,twitchNoise,time;uniform sampler2D osd;
+    uniform float monochrome,cleanView,fisheye,aspect,osdOn,twitchY,twitchX,twitchW,twitchNoise,time,scramble,whiteout;uniform sampler2D osd;
+    float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
     ${THREE.ShaderChunk.tonemapping_pars_fragment.replaceAll('toneMappingExposure','exposure')}
     varying vec2 vUv;
     // the cam's wide lens: a gentle barrel, the left and right edges kept in frame, the corners falling off to black
@@ -73,9 +74,21 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
       v.x+=twitchX*inBand;
       vec2 uv=lens(v);
       float inside=smoothstep(0.,.004,uv.x)*smoothstep(0.,.004,uv.y)*smoothstep(0.,.004,1.-uv.x)*smoothstep(0.,.004,1.-uv.y);
-      vec3 rgb=ACESFilmicToneMapping(texture2D(picture,clamp(uv,0.,1.)).rgb)*inside;
+      // scrambled (0..1): the picture alone tears into bands, rolls and drowns in static;
+      // the text laid over it afterwards stays put, so it can still be read
+      vec2 pv=uv;float tick=floor(time*24.);
+      if(scramble>0.){
+        float r=hash(vec2(floor(uv.y*42.),tick));
+        pv.x+=scramble*(r-.5)*.7*step(.3,r);
+        pv.y=fract(pv.y+scramble*fract(time*1.3));
+      }
+      vec3 rgb=ACESFilmicToneMapping(texture2D(picture,clamp(pv,0.,1.)).rgb)*inside;
       rgb=mix(rgb*12.92,1.055*pow(rgb,vec3(1./2.4))-0.055,step(vec3(0.0031308),rgb));
       if(videoMode>.5)rgb=texture2D(videoSource,vec2(vUv.x,1.-vUv.y)).rgb;
+      float grain=hash(floor(vUv*vec2(320.,240.))+fract(time)*97.);
+      if(scramble>0.)rgb=mix(rgb,vec3(grain*grain*1.15),scramble*.85);
+      // whited out (0..1): the picture burns up to bright white, a little static left in it
+      if(whiteout>0.)rgb=mix(rgb,vec3(.86+.14*grain),whiteout);
       // the camera's own text, laid over the picture before the signal (osd.js)
       if(osdOn>.5){vec4 o=texture2D(osd,clamp(uv,0.,1.));rgb=mix(rgb,o.rgb,o.a*inside);}     // bent by the lens too
       // a tracking band can carry noise with it (night vision's sweep)
@@ -209,7 +222,7 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
   // Compile the clean presentation variant during setup, not on the first toggle.
   const previousTarget=renderer.getRenderTarget();quad.material=prepare;
   renderer.setRenderTarget(null);renderer.compile(scene,camera);renderer.setRenderTarget(previousTarget);quad.material=encode;
-  const controls={...defaults,receiverOverrides:{},noise:0,  interference:0,  injection:null, injectionGain:0, testGain:1, automaticHum:false, automaticHumGain:0.15, monochrome:false, signalLevel:1, glitch:0, fisheye:0, snow:0, osd:null, twitchY:-1, twitchX:0, twitchW:.03, twitchNoise:0};
+  const controls={...defaults,receiverOverrides:{},noise:0,  interference:0,  injection:null, injectionGain:0, testGain:1, automaticHum:false, automaticHumGain:0.15, monochrome:false, signalLevel:1, glitch:0, fisheye:0, snow:0, osd:null, twitchY:-1, twitchX:0, twitchW:.03, twitchNoise:0, scramble:0, whiteout:0};
   const heldSignals = new Set();
   let clip=null;
   // Alternate quiet gaps and live mains injection; both last 1–5 seconds.
@@ -220,6 +233,7 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
   function show(){const target=renderer.getRenderTarget();quad.material=display;renderer.setRenderTarget(null);renderer.render(scene,camera);renderer.setRenderTarget(target);}
   function presentClean(){
     uniforms.exposure.value=renderer.toneMappingExposure;
+    uniforms.time.value=performance.now()/1000;                 // (the scramble's static moves without the signal too)
     uniforms.monochrome.value=controls.monochrome?1:0;
     uniforms.fisheye.value=controls.fisheye;
     setOverlay();
@@ -323,6 +337,7 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
     uniforms.osd.value=controls.osd||picture.texture;uniforms.osdOn.value=controls.osd?1:0;
     uniforms.twitchY.value=controls.twitchY;uniforms.twitchX.value=controls.twitchX;
     uniforms.twitchW.value=controls.twitchW;uniforms.twitchNoise.value=controls.twitchNoise;
+    uniforms.scramble.value=controls.scramble;uniforms.whiteout.value=controls.whiteout;
   }
   function snow(seconds){
     snowMaterial.uniforms.time.value=seconds;

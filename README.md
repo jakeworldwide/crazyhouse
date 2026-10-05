@@ -388,17 +388,23 @@ painting turns into a mattress ad, someone's standing in the shower.
 When you spot it, report the room (`report craziness`, then the room).
 A couple of seconds later it's checked:
 
-- **Something crazy really is going on there:** the feed scrambles hard
-  for a couple of seconds with `that WAS crazy` over it, and when the
-  picture comes back it's gone. Everything crazy in that room gets
-  cleared at once.
+- **Something crazy really is going on there:** the picture scrambles
+  into static for a couple of seconds with `that WAS crazy` held steady
+  over it (only the picture gets torn up, the words just get the
+  signal's fuzz), and when the picture comes back it's gone. Everything
+  crazy in that room gets cleared at once.
 - **Nothing there:** `no craziness found`.
 
 **Craziness overload.** Every craziness going on at once adds 1 to the
-level (an intensity 4 adds 2). At 3 a blinking warning comes up top and
-beeps every few seconds. At 5 it's over: the picture sinks into snow and
-you get `try again` or `main menu`. In `?debug` you can't die (the
-panel's `can't die` button switches that back on so you can test it).
+level (an intensity 4 adds 2). At 3 a warning blinks up top and beeps
+for 30 seconds, then gives up; it comes back if it gets any crazier.
+At 5 it's over: the picture sinks into snow and you get `try again` or
+`main menu`. In `?debug` you can't die (the panel's `can't die` button
+switches that back on so you can test it).
+
+**6 AM.** Make it to the end of the shift and the picture breaks up into
+static that burns up to white, `CRAZINESS DEFEATED` comes up through it,
+and after a few seconds of glory you get `play again` or `main menu`.
 
 **When it happens.** A schedule is rolled when the shift starts
 (midnight to 6 AM, 5 real minutes an hour):
@@ -408,9 +414,12 @@ panel's `can't die` button switches that back on so you can test it).
 - 4 to 6 AM: 5 or 6 an hour
 
 Bigger stuff unlocks as the night goes on: up to intensity 2 before
-2 AM, 3 before 4 AM, then anything. Nothing ever starts on the cam
-you're watching; it waits till you look away. Nothing happens in the
-first 40 seconds.
+2 AM, 3 before 4 AM, then anything. The milder ones keep turning up the
+whole night; whatever just unlocked just comes up a bit more often.
+Nothing ever starts on the cam you're watching; it waits till you look
+away. Nothing happens in the first 40 seconds. Each craziness only
+happens once a shift, so once they've all happened the rest of the
+night goes quiet (more crazinesses, more night).
 
 **Intensity.**
 
@@ -425,7 +434,9 @@ first 40 seconds.
 `craziness-list.js`. Copy one, give it the next number (`craziness10`,
 `craziness11`...) and fill in:
 
-- `cam`: the cam it's on, which is the room you have to report
+- `cam`: the cam it's on, which is the room you have to report. If more
+  than one cam really sees it, give a list (`['foyer', 'front yard']`)
+  and reporting any of them counts
 - `intensity`: 1 to 4
 - `at`: roughly where it is, in blueprint pixels, so lamps nearby redraw
   their shadows
@@ -437,14 +448,22 @@ first 40 seconds.
 named piece of furniture, `add` / `remove` put new things in the scene,
 `paintings.repaint(name, draw)` / `paintings.restore(name)` swap a
 painting's picture, `cam(name)` is a cam's position, plus `THREE`, `X`,
-`Z`, `FLOOR` and `walkHeight`. There's a `figure()` helper at the top
-for a tall dark someone with glowing eyes, and `standing()` for one
-that just stands there. The placeholders (`craziness1` to `craziness9`)
-show each kind.
+`Z`, `FLOOR` and `walkHeight`. There are helpers at the top: `figure()` for a tall dark someone with
+glowing eyes, `standing()` for one that just stands there, and
+`opens('fridge-door')` for anything that opens (doors, the fridge, the
+dryer) swinging open by itself. The placeholders (`craziness1` to
+`craziness14`) show each kind.
 
-The debug panel's `craziness` section lists them all (click one to start
-or stop it), spawns a random one, skips an hour ahead, clears them all,
-and the readout shows the level and when the next one's due.
+Make sure it's plainly in its own room from its cam. Something standing
+in the laundry but lined up with the bathroom door reads as the
+bathroom, and then reporting it right feels wrong.
+
+The debug panel's `craziness` section has a dropdown of them all with a
+`spawn` button (ones that already happened this shift are greyed out),
+spawn random, skip an hour ahead, clear them all, buttons to show the
+warning, the `that WAS crazy` scramble, the 6 AM win and the overload
+death, and `can't die`. The readout shows the level and when the next
+one's due.
 
 ## ghoul1
 

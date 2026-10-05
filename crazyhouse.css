@@ -391,9 +391,12 @@ canvas { pointer-events: none; }
   padding: 0.12em 0.5em 0.04em;
 }
 .dead-title { font-size: 1.8em; margin-bottom: 0.5em; }
+.won-title { font-size: 2.4em; letter-spacing: 0.04em; }
 .dead-menu button { cursor: pointer; min-width: 8em; }
 .dead-menu button:hover, .dead-menu button:focus-visible { outline: none; background: #fff; color: #000; }
-.frame.dead .arrow, .frame.dead .feed-controls, .frame.dead .hud-dots { pointer-events: none; }
+.won-buttons { display: flex; flex-direction: column; align-items: center; gap: 0.5em; }
+.won-buttons[hidden] { display: none; }
+.frame.over .arrow, .frame.over .feed-controls, .frame.over .hud-dots { pointer-events: none; }
 
 /* the feed's text is drawn into the picture by osd.js (under the NTSC
    fuzz); the page's own copy stays invisible, there to be clicked */
@@ -527,3 +530,8 @@ canvas { pointer-events: none; }
 .debug-panel .dbg-lights summary { cursor: pointer; color: #ccc; }
 .debug-panel .dbg-switches { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 4px; }
 .debug-panel .dbg-switches button { font-size: 11px; padding: 3px 4px; }
+.debug-panel .dbg-crazy > :not(summary) { margin-top: 5px; }
+.debug-panel .dbg-crazy select { flex: 1; min-width: 0; font-family: inherit; font-size: 11px; color: #fff; background: #111; border: 1px solid rgba(255, 255, 255, 0.5); padding: 3px 2px; }
+.debug-panel .dbg-crazy .dbg-row button { font-size: 11px; padding: 3px 4px; }
+.debug-panel .dbg-crazy [data-act="crazy-go"] { flex: 0 0 auto; }
+.debug-panel button:disabled { opacity: 0.35; cursor: default; }

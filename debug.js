@@ -48,9 +48,11 @@ export function createDebug(api) {
     <button data-act="composite" aria-pressed="${!debug.composite}">bypass composite: ${debug.composite ? 'off' : 'on'}</button>
     <button data-act="open">open it all</button>
     <details class="dbg-lights dbg-crazy"><summary>craziness</summary>
-      <div class="dbg-help">click one to start or stop it</div>
-      <div class="dbg-switches dbg-crazy-list" data-out="crazy"></div>
+      <div class="dbg-help">each one only happens once a shift (try again or a new shift resets them)</div>
+      <div class="dbg-row"><select data-in="crazy" aria-label="Craziness to spawn"></select><button data-act="crazy-go">spawn</button></div>
       <div class="dbg-row"><button data-act="crazy-spawn">spawn random</button><button data-act="crazy-hour">+1 hour</button><button data-act="crazy-clear">clear all</button></div>
+      <div class="dbg-row"><button data-act="crazy-warn">warning</button><button data-act="crazy-scramble">that WAS crazy</button></div>
+      <div class="dbg-row"><button data-act="crazy-win">win (6 AM)</button><button data-act="crazy-lose">lose (overload)</button></div>
       <button data-act="crazy-death">can't die: on</button>
     </details>
     <details class="dbg-lights"><summary>light switches</summary>
@@ -348,7 +350,7 @@ export function createDebug(api) {
 
   /* ─── ghoul ─── */
   /* ─── light switches ─── */
-  const sw = scene.userData.switches, swBox = $('.dbg-switches:not(.dbg-crazy-list)');
+  const sw = scene.userData.switches, swBox = $('.dbg-switches');
   for (const name of sw.names) {
     const b = document.createElement('button');
     b.textContent = name;
@@ -361,28 +363,42 @@ export function createDebug(api) {
   const showSwitches = () => swBox.querySelectorAll('button').forEach(b => b.classList.toggle('on', sw.isOn(b.dataset.circuit)));
 
   /* ─── craziness ─── */
-  const crazy = api.craziness, crazyBox = out('crazy');
+  const crazy = api.craziness, crazyPick = $('[data-in="crazy"]');
   for (const d of crazy.list) {
-    const b = document.createElement('button');
-    b.textContent = `${d.name.replace('craziness', '#')} ${d.cam} (${d.intensity})`;
-    b.title = d.note;
-    b.dataset.crazy = d.name;
-    b.addEventListener('click', () => {
-      if (crazy.isActive(d.name)) crazy.stop(d.name);
-      else crazy.start(d.name, api.shiftSeconds());
-      b.blur();
-    });
-    crazyBox.appendChild(b);
+    const o = document.createElement('option');
+    o.value = d.name;
+    o.title = d.note;
+    crazyPick.appendChild(o);
   }
+  btn('crazy-go').addEventListener('click', e => {
+    crazy.start(crazyPick.value, api.shiftSeconds());
+    // on to the next one that hasn't happened yet
+    const next = [...crazyPick.options].find(o => !crazy.isUsed(o.value));
+    if (next) crazyPick.value = next.value;
+    e.currentTarget.blur();
+  });
   btn('crazy-spawn').addEventListener('click', e => { crazy.spawn(api.shiftSeconds()); e.currentTarget.blur(); });
   btn('crazy-hour').addEventListener('click', e => { api.skipHour(); e.currentTarget.blur(); });
   btn('crazy-clear').addEventListener('click', e => { for (const n of crazy.active()) crazy.stop(n); e.currentTarget.blur(); });
+  btn('crazy-warn').addEventListener('click', e => { api.showWarning(); e.currentTarget.blur(); });
+  btn('crazy-scramble').addEventListener('click', e => { api.showScramble(); e.currentTarget.blur(); });
+  btn('crazy-win').addEventListener('click', e => { api.win(); e.currentTarget.blur(); });
+  btn('crazy-lose').addEventListener('click', e => { api.lose(); e.currentTarget.blur(); });
   btn('crazy-death').addEventListener('click', e => {
     debug.noDeath = !debug.noDeath;
     e.currentTarget.textContent = `can't die: ${debug.noDeath ? 'on' : 'off'}`;
     e.currentTarget.blur();
   });
-  const showCrazy = () => crazyBox.querySelectorAll('button').forEach(b => b.classList.toggle('on', crazy.isActive(b.dataset.crazy)));
+  // each option says where it is and how crazy, and whether it's going now or already done
+  const showCrazy = () => {
+    for (const o of crazyPick.options) {
+      const d = crazy.list.find(c => c.name === o.value), going = crazy.isActive(d.name), used = crazy.isUsed(d.name);
+      const text = `${d.name} · ${[].concat(d.cam).join('/')} · ${d.intensity}${going ? ' (going)' : used ? ' (done)' : ''}`;
+      if (o.textContent !== text) o.textContent = text;
+      o.disabled = used;
+    }
+    btn('crazy-go').disabled = crazy.isUsed(crazyPick.value);
+  };
 
   /* ─── first person ─── */
   let fp = null;
