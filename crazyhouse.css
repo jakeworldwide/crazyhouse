@@ -41,11 +41,11 @@ canvas {
 }
 
 /* game layers stay hidden until START (the canvas shows the title's static) */
-.hud, .arrow, .emp, .nv { opacity: 0; pointer-events: none; }
+.hud, .arrow, .emp { opacity: 0; pointer-events: none; }
 canvas { pointer-events: none; }
 .playing .hud { opacity: 1; }
 .playing .arrow { opacity: 0.55; pointer-events: auto; }
-.playing .emp, .playing .nv { opacity: 1; pointer-events: auto; }
+.playing .emp { opacity: 1; pointer-events: auto; }
 
 /* ─── title screen ──────────────────────────── */
 .title {
@@ -55,7 +55,7 @@ canvas { pointer-events: none; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.7) 25%, rgba(0, 0, 0, 0.25) 80%);   /* the static, darker behind the name */
+  background: transparent;      /* the static shows through (osd.js darkens it behind the name) */
   transition: opacity 0.45s ease;
 }
 .playing .title { opacity: 0; pointer-events: none; }
@@ -110,7 +110,7 @@ canvas { pointer-events: none; }
   inset: 0;
   padding: 2.6cqw 3.2cqw;
   font-family: 'VT323', ui-monospace, Menlo, monospace;
-  font-size: max(13px, 2.2cqw);
+  font-size: max(15px, 2.9cqw);
   line-height: 1;
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
@@ -275,24 +275,43 @@ canvas { pointer-events: none; }
   100% { background-position: 0 0, 0 0; }
 }
 
-.nv {
+.feed-controls {
   position: absolute;
-  right: calc(3.2cqw + max(13px, 1.9cqw) * 4.3);
-  bottom: 2.2cqw;
+  right: 3.2cqw;
+  bottom: 2.6cqw;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6em;
+  font-family: 'VT323', ui-monospace, Menlo, monospace;
+  font-size: max(15px, 2.9cqw);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.playing .feed-controls { pointer-events: auto; }
+.feed-controls button, .report-msg {
   font: inherit;
-  font-size: max(13px, 1.9cqw);
-  letter-spacing: 0.18em;
-  text-indent: 0.18em;
+  letter-spacing: inherit;
+  text-transform: uppercase;
   color: #fff;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  padding: 0.5cqw 1.2cqw 0.6cqw;
+  background: #000;
+  border: none;
+  padding: 0.12em 0.4em 0.04em;
+  white-space: nowrap;
   cursor: pointer;
   touch-action: manipulation;
-  text-shadow: 0 0 0.4cqw #000;
 }
-.nv:hover { background: rgba(255, 255, 255, 0.15); }
-.nv.on { background: #fff; color: #000; text-shadow: none; }
+.feed-controls button:hover, .feed-controls button:focus-visible, .nv.on, .report-btn[aria-expanded="true"] { outline: none; background: #fff; color: #000; }
+.report { position: relative; }
+.report-list, .report-msg { position: absolute; right: 0; bottom: calc(100% + 0.3em); }
+.report-list { display: flex; flex-direction: column; align-items: stretch; gap: 0.15em; }
+.report-list button { text-align: left; }
+.report-list[hidden], .report-msg[hidden] { display: none; }
+.frame.first-person .feed-controls { display: none; }
+
+/* the feed's text is drawn into the picture by osd.js (under the NTSC
+   fuzz); the page's own copy stays invisible, there to be clicked */
+.frame [data-osd] { opacity: 0 !important; }
 .night .hud-rec::after { content: ' · ir'; }
 
 /* ─── debug panel (only with ?debug) ────────── */

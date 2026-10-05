@@ -12,7 +12,8 @@ import { createGhoul } from './ghoul.js?v=12';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
-import { createAnalogPass } from './analog.js?v=31';
+import { createAnalogPass } from './analog.js?v=32';
+import { createOsd } from './osd.js?v=3';
 
 
 const $ = id => document.getElementById(id);
@@ -30,7 +31,7 @@ let state = 'title';
 const debug = { composite: true, free: false, fov: null, tick: null, onCam: null, fp: false, unlit: false };
 let camIndex = 0;
 export function setComposite(enabled){debug.composite=Boolean(enabled);}
-let renderer, scene, camera, ghoul, ghost, lamps, emp, ticks, ir, tv, analog, pvs;
+let renderer, scene, camera, ghoul, ghost, lamps, emp, ticks, ir, tv, analog, pvs, osd, osdTex;
 const EXPOSURE = 0.75;         // overall brightness of the picture
 const RESOLUTION = 1;          // pixel ratio (window.devicePixelRatio for full retina sharpness, at 4x the cost)
 const buffer = new THREE.Vector2();
@@ -162,6 +163,13 @@ function initGL() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = EXPOSURE;
   analog = createAnalogPass(renderer, {receiverParameters:{comb:true}});
+  // the feed's own text, drawn into the picture so it gets the same fuzz (osd.js)
+  osd = createOsd(frame);
+  osdTex = new THREE.CanvasTexture(osd.canvas);
+  osdTex.colorSpace = THREE.NoColorSpace;        // its colours go straight into the picture as they are
+  osdTex.generateMipmaps = false;
+  osdTex.minFilter = THREE.LinearFilter;
+  analog.controls.osd = osdTex;
   const testInterference = Number(new URLSearchParams(location.search).get('interference'));
   if (Number.isFinite(testInterference)) analog.controls.interference = Math.max(0, Math.min(1, testInterference));
   const recordingURL=new URLSearchParams(location.search).get('signal');
@@ -258,8 +266,19 @@ function setup() {
 /* ─── every frame ───────────────────────────── */
 
 const GLITCH = 0.45;           // seconds of signal trouble when the feed switches cams
-const FISHEYE = 0.16;          // the cams' wide lens (0 is a flat picture)
+const FISHEYE = 0.3;           // the cams' wide lens (0 is a flat picture)
 let glitch = 0;
+// the title's tracking twitch: now and then a band of lines slips sideways for a moment
+let twitchAt = 0, twitchUntil = 0;
+function titleTwitch(now) {
+  if (now > twitchAt) {
+    twitchAt = now + 1800 + Math.random() * 4200;
+    twitchUntil = now + 90 + Math.random() * 90;
+    analog.controls.twitchY = 0.15 + Math.random() * 0.7;
+    analog.controls.twitchX = (Math.random() < 0.5 ? -1 : 1) * (0.004 + Math.random() * 0.008);
+  }
+  if (now > twitchUntil) analog.controls.twitchY = -1;
+}
 function loop(now) {
   // seconds since the last frame, capped so a hidden tab doesn't make him jump
   const dt = Math.min((now - lastFrame) / 1000 || 0, 0.1);
@@ -267,12 +286,14 @@ function loop(now) {
   if (state !== 'playing' || !scene) {
     // the title: a dead channel, nothing but snow
     Object.assign(analog.controls, { signalLevel: 1, snow: 0.04, glitch: 0, fisheye: 0, monochrome: false });
+    if (osd.update('title', now)) osdTex.needsUpdate = true;
+    titleTwitch(now);
     analog.snow(now / 1000);
     analog.render(now / 1000);
     return;
   }
   glitch = Math.max(0, glitch - dt);
-  Object.assign(analog.controls, { signalLevel: 1, snow: 0, glitch: glitch / GLITCH, fisheye: debug.fp || debug.free ? 0 : FISHEYE });
+  Object.assign(analog.controls, { signalLevel: 1, snow: 0, glitch: glitch / GLITCH, fisheye: debug.fp || debug.free ? 0 : FISHEYE, twitchY: -1 });
   analog.stats.renderFrames=(analog.stats.renderFrames??0)+1;
   if(analog.stats.renderStart===undefined)analog.stats.renderStart=now;
   const renderElapsed=now-analog.stats.renderStart;
@@ -292,6 +313,8 @@ function loop(now) {
   tickEmp();
   refreshShadows();
   tickClock();
+  tickReport(now);
+  if (osd.update('hud', now)) osdTex.needsUpdate = true;
   const target = analog.picture;
   const height = analog.picture.height;
   renderer.setRenderTarget(target);
@@ -333,11 +356,13 @@ const prev = () => showCam(camIndex - 1);
 
 /* ─── the clock (night shift starts at midnight) ─── */
 
-// a timecode on the feed: hours, minutes, seconds and frames (30 a second)
+// the shift's clock: midnight at the start, and an hour goes by every 5 real minutes
+const HOUR = 5 * 60;           // real seconds per hour on the clock
 function tickClock() {
-  const t = (performance.now() - shiftStart) / 1000;
-  const pad = n => String(n).padStart(2, '0');
-  clock.textContent = `${pad(Math.floor(t / 3600) % 24)}:${pad(Math.floor(t / 60) % 60)}:${pad(Math.floor(t) % 60)}:${pad(Math.floor(t * 30) % 30)}`;
+  const minutes = Math.floor((performance.now() - shiftStart) / 1000 / HOUR * 60);
+  const h24 = Math.floor(minutes / 60) % 24, m = minutes % 60;
+  const text = `${h24 % 12 || 12}:${String(m).padStart(2, '0')} ${h24 < 12 ? 'AM' : 'PM'}`;
+  if (clock.textContent !== text) clock.textContent = text;
 }
 
 /* ─── the EMP ───────────────────────────────── */
@@ -347,7 +372,7 @@ function tickClock() {
    before it can fire again. */
 const RECHARGE = 6;
 let empReadyAt = 0;
-const empBt = $('emp');
+const empBt = $('emp');        // (no button for now: B fires it)
 
 function fireEmp() {
   if (state !== 'playing' || performance.now() < empReadyAt) return;
@@ -365,6 +390,7 @@ function fireEmp() {
 
 // the button's charge bar
 function tickEmp() {
+  if (!empBt) return;
   const left = Math.max(0, empReadyAt - performance.now()) / (RECHARGE * 1000);
   empBt.style.setProperty('--charge', (1 - left).toFixed(3));
   empBt.classList.toggle('charging', left > 0);
@@ -405,6 +431,38 @@ function toggleNight() {
   frame.style.setProperty('--grain', `url(${c.toDataURL()})`);
 })();
 
+/* ─── reporting an anomaly ──────────────────── */
+
+/* Bottom right: pick what's wrong on the cam you're watching. There are
+   no anomalies yet, so for now every report comes back with nothing found;
+   checkAnomaly(camIndex, type) is where they'll be looked up. */
+const reportBtn = $('reportBtn'), reportList = $('reportList'), reportMsg = $('reportMsg');
+let reportSteps = [];
+function checkAnomaly(cam, type) { return false; }
+function openReport(open) {
+  reportList.hidden = !open;
+  reportBtn.setAttribute('aria-expanded', open);
+}
+function fileReport(type) {
+  openReport(false);
+  if (!type) return;
+  const cam = camIndex, t = performance.now();
+  reportSteps = [
+    [t, `reporting: ${CAMS[cam].name} / ${type}...`],
+    [t + 2200, checkAnomaly(cam, type) ? 'anomaly fixed' : 'no anomaly found'],
+    [t + 4600, null]
+  ];
+}
+function tickReport(now) {
+  while (reportSteps.length && now >= reportSteps[0][0]) {
+    const [, text] = reportSteps.shift();
+    reportMsg.hidden = !text;
+    if (text) reportMsg.textContent = text;
+  }
+}
+reportBtn.addEventListener('click', () => { if (reportSteps.length) return; openReport(reportList.hidden); reportBtn.blur(); });
+reportList.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { fileReport(b.dataset.type); b.blur(); } });
+
 /* ─── start / quit ──────────────────────────── */
 
 function start() {
@@ -421,6 +479,7 @@ function start() {
 
 function quit() {
   state = 'title';
+  openReport(false); reportSteps = []; reportMsg.hidden = true;
   tv.pause();
   analog.heldSignals.clear();
   frame.classList.remove('playing');
@@ -431,7 +490,7 @@ function quit() {
 startBt.addEventListener('click', start);
 $('prev').addEventListener('click', prev);
 $('next').addEventListener('click', next);
-empBt.addEventListener('click', () => { fireEmp(); empBt.blur(); });
+empBt?.addEventListener('click', () => { fireEmp(); empBt.blur(); });
 nvBt.addEventListener('click', () => { toggleNight(); nvBt.blur(); });
 
 addEventListener('keydown', e => {
@@ -458,6 +517,8 @@ addEventListener('keydown', e => {
     e.preventDefault(); prev();
   } else if (e.key === 'n' || e.key === 'N') {
     e.preventDefault(); toggleNight();
+  } else if (e.key === 'r' || e.key === 'R') {
+    e.preventDefault(); if (!reportSteps.length) openReport(reportList.hidden);
   } else if (e.key === 'b' || e.key === 'B') {
     e.preventDefault(); fireEmp();
   } else if (e.key === 'Escape') {

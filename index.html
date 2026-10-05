@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=VT323&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="crazyhouse.css?v=13" />
+  <link rel="stylesheet" href="crazyhouse.css?v=16" />
 </head>
 <body>
 
@@ -23,9 +23,9 @@
 
     <!-- Camera overlay -->
     <div class="hud" aria-live="polite">
-      <div class="hud-cam"><span id="camNum">CAM 01</span><span id="camName"></span></div>
-      <div class="hud-rec"><i></i>rec</div>
-      <div class="hud-clock" id="clock">00:00:00:00</div>
+      <div class="hud-cam"><span id="camNum" data-osd="hud">CAM 01</span><span id="camName" data-osd="hud"></span></div>
+      <div class="hud-rec" data-osd="hud"><i data-osd-dot></i>rec</div>
+      <div class="hud-clock" id="clock" data-osd="hud">12:00 AM</div>
       <div class="hud-dots" id="dots"></div>
     </div>
 
@@ -36,8 +36,24 @@
       <svg viewBox="0 0 24 48" aria-hidden="true"><polyline points="6,4 18,24 6,44" /></svg>
     </button>
 
-    <button class="nv" id="nv" aria-label="Toggle night vision" aria-pressed="false">nv</button>
-    <button class="emp" id="emp" aria-label="Fire the EMP at this room">emp</button>
+    <!-- bottom right: night vision, and reporting an anomaly on this cam -->
+    <div class="feed-controls">
+      <button class="nv" id="nv" data-osd="hud" aria-label="Toggle night vision" aria-pressed="false">nv</button>
+      <div class="report">
+        <div class="report-list" id="reportList" hidden>
+          <button data-osd="hud" data-type="object moved">object moved</button>
+          <button data-osd="hud" data-type="object missing">object missing</button>
+          <button data-osd="hud" data-type="extra object">extra object</button>
+          <button data-osd="hud" data-type="picture changed">picture changed</button>
+          <button data-osd="hud" data-type="strange light">strange light</button>
+          <button data-osd="hud" data-type="intruder">intruder</button>
+          <button data-osd="hud" data-type="camera malfunction">camera malfunction</button>
+          <button data-osd="hud" data-type="">cancel</button>
+        </div>
+        <div class="report-msg" id="reportMsg" data-osd="hud" hidden></div>
+        <button class="report-btn" id="reportBtn" data-osd="hud" aria-expanded="false">report anomaly</button>
+      </div>
+    </div>
 
     <div class="cut-flash" aria-hidden="true"></div>
     <div class="emp-flash" aria-hidden="true"></div>
@@ -45,7 +61,7 @@
     <!-- Title screen -->
     <section class="title" id="title">
       <a class="back" href="../">&lsaquo; games</a>
-      <h1>crazyhouse</h1>
+      <h1 data-osd="title">crazyhouse</h1>
       <button class="start" id="start">START</button>
     </section>
 
@@ -53,6 +69,6 @@
 
   </div>
 
-  <script type="module" src="main.js?v=57"></script>
+  <script type="module" src="main.js?v=60"></script>
 </body>
 </html>

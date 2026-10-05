@@ -21,7 +21,7 @@ Then open http://localhost:8000. Edit a file, refresh the page.
 ## Controls
 
 Left / right arrow keys, the number pad (4 / 6), A / D, or the on-screen
-arrows switch cams. **B** or the `emp` button fires the EMP at the room
+arrows switch cams. **B** fires the EMP at the room
 you're watching. **N** or the `nv` button toggles night vision. Enter or Space starts. Esc goes back to the title.
 
 ## The EMP
@@ -325,17 +325,31 @@ grain over it). Lamps blow out and ghoul1's pupils glow. Strength is
 - **Title screen**: a dead channel. The renderer and the composite pass
   start at page load, and random grey goes out through the signal and
   back (`analog.snow()`), so the snow smears and speckles like real NTSC
-  snow. The house is built on the first START.
+  snow. The name is in the picture too, so it's fuzzed by the same
+  signal, and every few seconds a band of lines slips sideways for a
+  moment (a tracking twitch, `titleTwitch()` in `main.js`). The house is
+  built on the first START.
 - **Switching cams**: the signal breaks up for a moment (`GLITCH` in
   `main.js`): it drops and flickers so the picture loses sync and tears,
   with snow, interference and a hum bar, then settles. With the
   composite bypassed (debug) it's a quick drop to black instead.
-- **Lens**: the cams have a subtle fisheye (`FISHEYE` in `main.js`, 0 is
-  flat), applied to the picture before it's encoded, like a real lens.
-  First person and the free cam stay flat.
-- **On-screen text**: the cam number, its name, REC and a timecode
-  (hours, minutes, seconds, frames since midnight) in white on black,
-  in VT323, like a VCR's own text.
+- **Lens**: the cams have a fisheye (`FISHEYE` in `main.js`, 0 is flat),
+  applied to the picture before it's encoded, like a real lens. First
+  person and the free cam stay flat.
+- **The feed's text** (`osd.js`): the cam number and name, REC, the
+  clock, NV and the anomaly menu are laid over the picture inside the
+  camera, after the lens and before the signal, so they smear and ghost
+  like a VCR's own text. They're ordinary page elements underneath
+  (`data-osd="hud"`), invisible but there to be clicked; osd.js copies
+  them onto a canvas whenever they change. White on black, in VT323.
+- **The clock** starts at midnight and runs fast: an hour every 5 real
+  minutes (`HOUR` in `main.js`).
+- **Reporting an anomaly** (bottom right, or R): pick what's wrong on the
+  cam you're watching (object moved, object missing, extra object,
+  picture changed, strange light, intruder, camera malfunction). There
+  are no anomalies yet, so every report comes back "no anomaly found";
+  `checkAnomaly(cam, type)` in `main.js` is where they'll be looked up.
+- **The EMP** has no button for now; B still fires it.
 
 ## ghoul1
 
