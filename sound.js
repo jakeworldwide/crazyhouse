@@ -7,6 +7,9 @@
    flyback ticks, and a burst of static hisses while the new picture
    locks in.
    relay(): a smaller click, like the night vision's IR relay.
+   scramble(): reported and confirmed, the feed tearing itself up.
+   warn(): too much going on, a two-note alarm beep.
+   overload(): craziness overload, the picture dying into a roar of static.
 
    Browsers only allow sound after a click or key press, so unlock()
    is called from START.
@@ -38,6 +41,7 @@ export function createSounds() {
   function burst(t, { type = 'bandpass', freq = 2000, q = 1, gain = 0.5, attack = 0.001, decay = 0.03, sweepTo = null, length = decay + 0.05 }) {
     const src = ctx.createBufferSource();
     src.buffer = noise;
+    src.loop = true;                                         // (the long hisses outlast the second of noise)
     src.playbackRate.value = 0.8 + Math.random() * 0.4;
     const f = ctx.createBiquadFilter();
     f.type = type; f.frequency.setValueAtTime(freq, t); f.Q.value = q;
@@ -92,5 +96,52 @@ export function createSounds() {
     burst(t + 0.015, { freq: 2600, q: 0.7, gain: 0.08, attack: 0.01, decay: 0.4, sweepTo: 700, length: 0.45 });   // the picture rolling over
   }
 
-  return { unlock, thunk, relay };
+  // a tone that holds, then stops dead: freq Hz, how loud, how long
+  function tone(t, { freq = 880, gain = 0.2, length = 0.15, type = 'square', to = null }) {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, t + length);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.005);
+    g.gain.setValueAtTime(gain, t + length - 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + length);
+    o.connect(g).connect(out);
+    o.start(t);
+    o.stop(t + length + 0.02);
+  }
+
+  function scramble() {
+    if (!ctx) return;
+    const t = ctx.currentTime + 0.005;
+    thump(t, { from: 90, to: 30, gain: 1, decay: 0.35 });
+    // the picture tearing: bursts of static jumping around the dial
+    for (let i = 0; i < 14; i++) {
+      const at = t + i * 0.16 + Math.random() * 0.06;
+      burst(at, { freq: 500 + Math.random() * 4000, q: 0.5 + Math.random() * 2, gain: 0.35 + Math.random() * 0.3, attack: 0.005, decay: 0.08 + Math.random() * 0.14 });
+    }
+    burst(t, { type: 'lowpass', freq: 1800, q: 0.5, gain: 0.25, attack: 0.05, decay: 2.2, sweepTo: 400, length: 2.3 });   // a roar under it
+    tone(t + 0.02, { freq: 60, gain: 0.12, length: 2.2, type: 'sawtooth' });                                           // mains hum breaking through
+  }
+
+  function warn() {
+    if (!ctx) return;
+    const t = ctx.currentTime + 0.005;
+    for (let i = 0; i < 2; i++) {
+      tone(t + i * 0.32, { freq: 1046, gain: 0.08, length: 0.12 });
+      tone(t + i * 0.32 + 0.14, { freq: 784, gain: 0.08, length: 0.12 });
+    }
+  }
+
+  function overload() {
+    if (!ctx) return;
+    const t = ctx.currentTime + 0.005;
+    tone(t, { freq: 420, to: 38, gain: 0.18, length: 2.4, type: 'sawtooth' });                                   // something winding down
+    burst(t, { type: 'lowpass', freq: 600, q: 0.4, gain: 0.2, attack: 0.3, decay: 2.2, sweepTo: 7000, length: 2.6 });
+    burst(t + 2.3, { freq: 2500, q: 0.3, gain: 0.5, attack: 0.05, decay: 1.6, length: 1.7 });                    // then nothing but snow
+    thump(t + 2.3, { from: 80, to: 25, gain: 0.9, decay: 0.5 });
+  }
+
+  return { unlock, thunk, relay, scramble, warn, overload };
 }

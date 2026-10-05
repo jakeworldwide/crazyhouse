@@ -348,6 +348,53 @@ canvas { pointer-events: none; }
 .pause-menu button { cursor: pointer; min-width: 8em; }
 .pause-menu button:hover, .pause-menu button:focus-visible { outline: none; background: #fff; color: #000; }
 
+/* craziness: the big "that WAS crazy" over the scramble, and the warning up top */
+.crazy-banner, .crazy-warning {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 6;
+  font-family: 'VT323', ui-monospace, Menlo, monospace;
+  line-height: 1;
+  color: #fff;
+  background: #000;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.crazy-banner { top: 50%; translate: -50% -50%; font-size: 11cqw; padding: 0.06em 0.3em 0; letter-spacing: 0.02em; }
+.crazy-warning { top: 2.6cqw; font-size: max(14px, 2.4cqw); padding: 0.12em 0.4em 0.04em; letter-spacing: 0.04em; text-transform: uppercase; }
+.crazy-banner[hidden], .crazy-warning[hidden] { display: none; }
+
+/* craziness overload: snow, and the way out */
+.dead-menu {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  font-family: 'VT323', ui-monospace, Menlo, monospace;
+  font-size: max(18px, 3.4cqw);
+  line-height: 1;
+  letter-spacing: 0.06em;
+}
+.dead-menu[hidden] { display: none; }
+.dead-title, .dead-menu button {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: uppercase;
+  color: #fff;
+  background: #000;
+  border: none;
+  padding: 0.12em 0.5em 0.04em;
+}
+.dead-title { font-size: 1.8em; margin-bottom: 0.5em; }
+.dead-menu button { cursor: pointer; min-width: 8em; }
+.dead-menu button:hover, .dead-menu button:focus-visible { outline: none; background: #fff; color: #000; }
+.frame.dead .arrow, .frame.dead .feed-controls, .frame.dead .hud-dots { pointer-events: none; }
+
 /* the feed's text is drawn into the picture by osd.js (under the NTSC
    fuzz); the page's own copy stays invisible, there to be clicked */
 .frame [data-osd] { opacity: 0 !important; }

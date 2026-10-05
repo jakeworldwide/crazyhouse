@@ -9,8 +9,9 @@
    pass lays that canvas over the picture (bent by the same lens as the
    picture) before the signal is encoded.
 
-   Anything with data-osd="hud" is copied while you're playing, and
-   data-osd="title" on the title screen. Inside one, data-osd-dot is a
+   Anything with data-osd="hud" is copied while you're playing,
+   data-osd="title" on the title screen, and data-osd="dead" on the
+   craziness overload screen. Inside one, data-osd-dot is a
    blinking dot; data-osd-shape="chevron-left" / "chevron-right" draws an
    arrow instead of text. The canvas is only redrawn when something on it
    changes.
@@ -86,7 +87,7 @@ export function createOsd(frame) {
     if (key === last) return false;
     last = key;
     g.clearRect(0, 0, W, H);
-    if (group === 'title') {                               // the snow a little darker behind the name
+    if (group === 'title' || group === 'dead') {           // the snow a little darker behind the words
       const v = g.createRadialGradient(W / 2, H * 0.45, H * 0.05, W / 2, H * 0.45, W * 0.55);
       v.addColorStop(0, 'rgba(0,0,0,0.72)'); v.addColorStop(1, 'rgba(0,0,0,0.1)');
       g.fillStyle = v; g.fillRect(0, 0, W, H);

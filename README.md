@@ -22,7 +22,10 @@ Then open http://localhost:8000. Edit a file, refresh the page.
 
 Left / right arrow keys, the number pad (4 / 6), A / D, or the on-screen
 arrows switch cams. **B** fires the EMP at the room
-you're watching. **N** or the `nv` button toggles night vision. Enter or Space starts. Esc goes back to the title.
+you're watching. **N** or the `nv` button toggles night vision. **R** or
+the `report craziness` button reports a room. Enter or Space starts. Esc
+opens the options menu (resume, or quit to the title) and stops the
+clock while it's open.
 
 ## The EMP
 
@@ -60,6 +63,9 @@ him on the cams and fire the EMP while you're watching his room.
   he fades in and out
 - `ghost.js` draws him blurred and faded over the frame
 - `emp.js` is the EMP's electric arcs, flash and zap sound
+- `craziness.js` runs craziness: when it happens, what's going on, the
+  overload level (see Craziness)
+- `craziness-list.js` is every craziness, one entry each
 - `debug.js` is the debug panel (see Debugging)
 - `check-route.mjs` tests his walking loop for clipping (see below)
 - `vendor/three-r186/` is Three.js, the 3D library, saved here so the
@@ -374,6 +380,71 @@ ghoul1's pupils glow. Strength is `IR_STRENGTH` and `NV_GAIN` in
 - **Esc** opens the options menu (in the feed like the rest of its text):
   resume, or quit to the title.
 - **The EMP** has no button for now; B still fires it.
+
+## Craziness
+
+Stuff in the house goes crazy over the night. A chair turns round, a
+painting turns into a mattress ad, someone's standing in the shower.
+When you spot it, report the room (`report craziness`, then the room).
+A couple of seconds later it's checked:
+
+- **Something crazy really is going on there:** the feed scrambles hard
+  for a couple of seconds with `that WAS crazy` over it, and when the
+  picture comes back it's gone. Everything crazy in that room gets
+  cleared at once.
+- **Nothing there:** `no craziness found`.
+
+**Craziness overload.** Every craziness going on at once adds 1 to the
+level (an intensity 4 adds 2). At 3 a blinking warning comes up top and
+beeps every few seconds. At 5 it's over: the picture sinks into snow and
+you get `try again` or `main menu`. In `?debug` you can't die (the
+panel's `can't die` button switches that back on so you can test it).
+
+**When it happens.** A schedule is rolled when the shift starts
+(midnight to 6 AM, 5 real minutes an hour):
+
+- 12 to 2 AM: 2 or 3 in all
+- 2 to 4 AM: 3 or 4 an hour
+- 4 to 6 AM: 5 or 6 an hour
+
+Bigger stuff unlocks as the night goes on: up to intensity 2 before
+2 AM, 3 before 4 AM, then anything. Nothing ever starts on the cam
+you're watching; it waits till you look away. Nothing happens in the
+first 40 seconds.
+
+**Intensity.**
+
+1. Something moves, appears or disappears
+2. Something strange shows up, like a painting turning into a photo or
+   an ad that doesn't belong
+3. Something really crazy: a person, a ghost, something big
+4. Super crazy, staring straight into the cam (counts double toward
+   overload)
+
+**Adding one.** Every craziness is an entry in `CRAZINESS` in
+`craziness-list.js`. Copy one, give it the next number (`craziness10`,
+`craziness11`...) and fill in:
+
+- `cam`: the cam it's on, which is the room you have to report
+- `intensity`: 1 to 4
+- `at`: roughly where it is, in blueprint pixels, so lamps nearby redraw
+  their shadows
+- `note`: what's going on, for whoever's reading the code
+- `start(ctx)` makes it happen, `stop(ctx)` puts everything back exactly
+  how it was
+
+`ctx` has what you need to mess with the house: `find(name)` gets a
+named piece of furniture, `add` / `remove` put new things in the scene,
+`paintings.repaint(name, draw)` / `paintings.restore(name)` swap a
+painting's picture, `cam(name)` is a cam's position, plus `THREE`, `X`,
+`Z`, `FLOOR` and `walkHeight`. There's a `figure()` helper at the top
+for a tall dark someone with glowing eyes, and `standing()` for one
+that just stands there. The placeholders (`craziness1` to `craziness9`)
+show each kind.
+
+The debug panel's `craziness` section lists them all (click one to start
+or stop it), spawns a random one, skips an hour ahead, clears them all,
+and the readout shows the level and when the next one's due.
 
 ## ghoul1
 

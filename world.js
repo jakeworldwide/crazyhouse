@@ -3772,6 +3772,8 @@ function paintings() {
     return { lw, lh, sx: (i % ART_COLS) * ART, sy: Math.floor(i / ART_COLS) * ART, sw: lw * 2, sh: lh * 2 };
   });
   const size = ART_SHEET, mat = surface(0xffffff, 0.85);
+  // a craziness can swap a painting for something else, and put it back (craziness-list.js)
+  let repaint = () => {}, restore = () => {};
   if (typeof document !== 'undefined') {
     let seed = 77;
     const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -3816,6 +3818,31 @@ function paintings() {
       };
       photo.src = 'art/portraits/' + name + '.jpg';
     });
+    const saved = new Map(), slotOf = name => slots[PAINTINGS.findIndex(p => p[0] === name)];
+    // draw(g, w, h) paints the new picture; crisp: true leaves it sharp and clean, not old and pixelated
+    repaint = (name, draw, { crisp = false } = {}) => {
+      const slot = slotOf(name);
+      if (!slot) return;
+      if (!saved.has(name)) saved.set(name, g.getImageData(slot.sx, slot.sy, slot.sw, slot.sh));
+      if (crisp) {
+        g.save(); g.translate(slot.sx, slot.sy); g.beginPath(); g.rect(0, 0, slot.sw, slot.sh); g.clip();
+        g.imageSmoothingEnabled = true;
+        draw(g, slot.sw, slot.sh);
+        g.restore();
+      } else {
+        const s2 = smallCanvas(slot);
+        draw(s2, slot.lw, slot.lh);
+        finish(s2, slot);
+      }
+      mat.map.needsUpdate = true;
+    };
+    restore = name => {
+      const slot = slotOf(name), was = saved.get(name);
+      if (!slot || !was) return;
+      g.putImageData(was, slot.sx, slot.sy);
+      saved.delete(name);
+      mat.map.needsUpdate = true;
+    };
     mat.map.magFilter = THREE.NearestFilter;
     mat.map.anisotropy = 4;
     // a faint glow of their own, so they read in a dark room
@@ -3826,7 +3853,7 @@ function paintings() {
   const frames = { gilt: metal(0x8a6a2e, 0.5), wood: surface(0x2e1e12, 0.6), black: surface(0x121212, 0.5) };
   const widths = { gilt: 0.17, wood: 0.12, black: 0.06 };
   const turn = { 'x+': Math.PI / 2, 'x-': -Math.PI / 2, 'z+': 0, 'z-': Math.PI };
-  return named('paintings', ...PAINTINGS.map(([, face, px, py, w, h, cy, frame, text], i) => {
+  const group = named('paintings', ...PAINTINGS.map(([, face, px, py, w, h, cy, frame, text], i) => {
     const { sx, sy, sw, sh } = slots[i], f = widths[frame];
     const pic = new THREE.PlaneGeometry(w, h), uv = pic.attributes.uv;
     for (let k = 0; k < uv.count; k++)                                         // its own square of the sheet
@@ -3841,6 +3868,9 @@ function paintings() {
     g.rotation.y = turn[face];
     return small(say(text, g));
   }));
+  group.userData.repaint = (...a) => repaint(...a);
+  group.userData.restore = (...a) => restore(...a);
+  return group;
 }
 
 function roomLamps(lamps) {

@@ -47,6 +47,12 @@ export function createDebug(api) {
     </div>
     <button data-act="composite" aria-pressed="${!debug.composite}">bypass composite: ${debug.composite ? 'off' : 'on'}</button>
     <button data-act="open">open it all</button>
+    <details class="dbg-lights dbg-crazy"><summary>craziness</summary>
+      <div class="dbg-help">click one to start or stop it</div>
+      <div class="dbg-switches dbg-crazy-list" data-out="crazy"></div>
+      <div class="dbg-row"><button data-act="crazy-spawn">spawn random</button><button data-act="crazy-hour">+1 hour</button><button data-act="crazy-clear">clear all</button></div>
+      <button data-act="crazy-death">can't die: on</button>
+    </details>
     <details class="dbg-lights"><summary>light switches</summary>
       <div class="dbg-row"><button data-act="lights-on">all on</button><button data-act="lights-off">all off</button></div>
       <div class="dbg-switches"></div>
@@ -259,6 +265,7 @@ export function createDebug(api) {
   debug.tick = dt => {
     if (debug.fp && fp) fp.update(dt);
     showSwitches();
+    showCrazy();
     frameMs = frameMs * 0.95 + dt * 1000 * 0.05;
     if (debug.free) {
       camera.rotation.set(pitch, yaw, 0, 'YXZ');
@@ -341,7 +348,7 @@ export function createDebug(api) {
 
   /* ─── ghoul ─── */
   /* ─── light switches ─── */
-  const sw = scene.userData.switches, swBox = $('.dbg-switches');
+  const sw = scene.userData.switches, swBox = $('.dbg-switches:not(.dbg-crazy-list)');
   for (const name of sw.names) {
     const b = document.createElement('button');
     b.textContent = name;
@@ -353,9 +360,33 @@ export function createDebug(api) {
   btn('lights-off').addEventListener('click', () => sw.all(false));
   const showSwitches = () => swBox.querySelectorAll('button').forEach(b => b.classList.toggle('on', sw.isOn(b.dataset.circuit)));
 
+  /* ─── craziness ─── */
+  const crazy = api.craziness, crazyBox = out('crazy');
+  for (const d of crazy.list) {
+    const b = document.createElement('button');
+    b.textContent = `${d.name.replace('craziness', '#')} ${d.cam} (${d.intensity})`;
+    b.title = d.note;
+    b.dataset.crazy = d.name;
+    b.addEventListener('click', () => {
+      if (crazy.isActive(d.name)) crazy.stop(d.name);
+      else crazy.start(d.name, api.shiftSeconds());
+      b.blur();
+    });
+    crazyBox.appendChild(b);
+  }
+  btn('crazy-spawn').addEventListener('click', e => { crazy.spawn(api.shiftSeconds()); e.currentTarget.blur(); });
+  btn('crazy-hour').addEventListener('click', e => { api.skipHour(); e.currentTarget.blur(); });
+  btn('crazy-clear').addEventListener('click', e => { for (const n of crazy.active()) crazy.stop(n); e.currentTarget.blur(); });
+  btn('crazy-death').addEventListener('click', e => {
+    debug.noDeath = !debug.noDeath;
+    e.currentTarget.textContent = `can't die: ${debug.noDeath ? 'on' : 'off'}`;
+    e.currentTarget.blur();
+  });
+  const showCrazy = () => crazyBox.querySelectorAll('button').forEach(b => b.classList.toggle('on', crazy.isActive(b.dataset.crazy)));
+
   /* ─── first person ─── */
   let fp = null;
-  import('./firstperson.js?v=3').then(m => { fp = api.fp = m.createFirstPerson({ scene, camera, frame }); });
+  import('./firstperson.js?v=4').then(m => { fp = api.fp = m.createFirstPerson({ scene, camera, frame }); });
   const leaveFP = () => {
     if (!debug.fp) return;
     fp.exit();
@@ -432,6 +463,8 @@ export function createDebug(api) {
     const p = camera.position;
     const mode = debug.fp ? '(first person)' : debug.free ? '(free cam)' : '(cam ' + (api.camIndex() + 1) + ')';
     let text = `${Math.round(1000 / frameMs)} fps  (${frameMs.toFixed(1)} ms a frame)\npos  ${r(p.x)}, ${r(p.y)}, ${r(p.z)}\nfov  ${Math.round(camera.fov)}°  ${mode}\nghoul ${ghoul.enabled ? ghoul.state : 'despawned'}`;
+    const next = crazy.next(), clock = s => { const m = Math.floor(s / api.HOUR * 60); return `${Math.floor(m / 60) || 12}:${String(m % 60).padStart(2, '0')}`; };
+    text += `\ncrazy level ${crazy.level()} · ${crazy.active().join(', ') || 'nothing going on'}\nnext craziness ${next === null ? 'none left' : clock(next) + ' (' + Math.max(0, Math.round(next - api.shiftSeconds())) + 's)'}`;
     if (now < copiedUntil) text += `\ncopied:\n${copied}`;
     out('read').textContent = text;
     // keep the slider honest when cams switch

@@ -4,17 +4,19 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { buildWorld, ROOMS, roomAt, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=44';
+import { buildWorld, ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=45';
 import { buildPVS } from './pvs.js?v=1';
-import { createEmp } from './emp.js?v=6';
-import { CAMS, camAt } from './cams.js?v=8';
-import { createGhoul } from './ghoul.js?v=12';
+import { createEmp } from './emp.js?v=7';
+import { CAMS, camAt } from './cams.js?v=9';
+import { createGhoul } from './ghoul.js?v=13';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
 import { createAnalogPass } from './analog.js?v=36';
-import { createOsd } from './osd.js?v=4';
-import { createSounds } from './sound.js?v=2';
+import { createOsd } from './osd.js?v=5';
+import { createSounds } from './sound.js?v=3';
+import { createCraziness, WARNING, OVERLOAD } from './craziness.js?v=1';
+import { CRAZINESS } from './craziness-list.js?v=3';
 
 
 const $ = id => document.getElementById(id);
@@ -30,11 +32,12 @@ const dots    = $('dots');
 let state = 'title';
 // filled in by debug.js when ?debug is on
 const sounds = createSounds();
-const debug = { composite: true, free: false, fov: null, tick: null, onCam: null, fp: false, unlit: false };
+const debug = { composite: true, free: false, fov: null, tick: null, onCam: null, fp: false, unlit: false,
+  noDeath: new URLSearchParams(location.search).has('debug') };          // in debug you can't die (the panel can switch it back)
 let camIndex = 0;
 export function setComposite(enabled){debug.composite=Boolean(enabled);}
 let renderer, scene, camera, ghoul, ghost, lamps, emp, ticks, ir, tv, analog, pvs, osd, osdTex;
-let signalOK = true, signalTries = 0;
+let signalOK = true, signalTries = 0, craziness;
 const EXPOSURE = 0.66;         // overall brightness of the picture
 const RESOLUTION = 1;          // pixel ratio (window.devicePixelRatio for full retina sharpness, at 4x the cost)
 const buffer = new THREE.Vector2();
@@ -242,6 +245,16 @@ function setup() {
     if (o.shadow) { o.shadow.camera.layers.enable(GHOST_LAYER); o.shadow.camera.layers.enable(CULL_LAYER); }
   });
   ghost = createGhostPass(renderer);
+  // craziness: the engine (craziness.js) and what can go crazy (craziness-list.js)
+  craziness = createCraziness({ list: CRAZINESS, hour: HOUR, ctx: {
+    THREE, scene, X, Z, FLOOR, walkHeight,
+    find: name => scene.getObjectByName(name),
+    cam: name => CAMS.find(c => c.name === name),
+    add: obj => scene.add(obj),
+    remove: obj => scene.remove(obj),
+    moved: (x, z) => (scene.userData.moved ||= []).push(new THREE.Vector3(x, FLOOR + 4, z)),
+    paintings: scene.getObjectByName('paintings').userData
+  } });
   applyLightBudget(new THREE.Vector3(...CAMS[0].pos));     // before anything's drawn, so shaders are built for the budget
   // each window's reflection: one small snapshot apiece, taken now, never again
   captureReflections(renderer, scene);
@@ -261,12 +274,13 @@ function setup() {
   if (new URLSearchParams(location.search).has('debug')) {
     const api = {
       THREE, scene, camera, renderer, CAMS, showCam, ghoul, lamps, fireEmp, toggleNight, frame, debug, tv, analog, pvs,
+      craziness, shiftSeconds: () => shiftSeconds(), skipHour: () => { shiftStart -= HOUR * 1000; }, HOUR,
       resizeAnalog: fit,
       setComposite,
       isNight: () => night, camIndex: () => camIndex
     };
     window.crazyhouse = api;
-    import('./debug.js?v=21').then(m => m.createDebug(api));
+    import('./debug.js?v=23').then(m => m.createDebug(api));
   }
 
   return true;
@@ -292,7 +306,15 @@ function loop(now) {
   // seconds since the last frame, capped so a hidden tab doesn't make him jump
   const dt = Math.min((now - lastFrame) / 1000 || 0, 0.1);
   lastFrame = now;
-  if (state !== 'playing' || !scene) {
+  if (state === 'dead') {
+    // craziness overload: nothing but snow, and the way out
+    Object.assign(analog.controls, { signalLevel: 1, snow: 0.06, glitch: 0, fisheye: 0, monochrome: false, twitchY: -1, twitchW: 0.03, twitchNoise: 0 });
+    if (osd.update('dead', now)) osdTex.needsUpdate = true;
+    analog.snow(now / 1000);
+    present(now);
+    return;
+  }
+  if ((state !== 'playing' && state !== 'dying') || !scene) {
     // the title: a dead channel, nothing but snow
     Object.assign(analog.controls, { signalLevel: 1, snow: 0.04, glitch: 0, fisheye: 0, monochrome: false, twitchW: 0.03, twitchNoise: 0 });
     if (osd.update('title', now)) osdTex.needsUpdate = true;
@@ -307,11 +329,12 @@ function loop(now) {
   // can happen behind it), then a wide band of tracking trouble rolls up as it comes back
   const nvT = (now - sweepStart) / 1000;
   if (nvT < BLACKOUT) Object.assign(analog.controls, { signalLevel: 0.02, glitch: 1 });
-  if (nvT >= BLACKOUT * 0.45) applyNight();                // halfway through the dark, the picture switches
   else if (!nvBack) { nvBack = true; glitch = GLITCH; }
+  if (nvT >= BLACKOUT * 0.45) applyNight();                // halfway through the dark, the picture switches
   const sweep = (nvT - BLACKOUT) / SWEEP;
   if (sweep >= 0 && sweep < 1) Object.assign(analog.controls, { twitchY: sweep * 1.3 - 0.15, twitchW: 0.11, twitchNoise: 0.55, twitchX: 0.035 * Math.sin(now * 0.09) });
   else Object.assign(analog.controls, { twitchY: -1, twitchW: 0.03, twitchNoise: 0 });
+  tickCraziness(now);
   analog.stats.renderFrames=(analog.stats.renderFrames??0)+1;
   if(analog.stats.renderStart===undefined)analog.stats.renderStart=now;
   const renderElapsed=now-analog.stats.renderStart;
@@ -407,8 +430,11 @@ const prev = () => showCam(camIndex - 1);
 
 // the shift's clock: midnight at the start, and an hour goes by every 5 real minutes
 const HOUR = 5 * 60;           // real seconds per hour on the clock
+// seconds into the shift; stands still while the options menu is open
+let pausedAt = 0, pausedFor = 0;
+const shiftSeconds = () => ((pausedAt || performance.now()) - shiftStart - pausedFor) / 1000;
 function tickClock() {
-  const minutes = Math.floor((performance.now() - shiftStart) / 1000 / HOUR * 60);
+  const minutes = Math.floor(shiftSeconds() / HOUR * 60);
   const h24 = Math.floor(minutes / 60) % 24, m = minutes % 60;
   const text = `${h24 % 12 || 12}:${String(m).padStart(2, '0')} ${h24 < 12 ? 'AM' : 'PM'}`;
   if (clock.textContent !== text) clock.textContent = text;
@@ -502,12 +528,12 @@ function applyNight() {
 
 /* ─── reporting an anomaly ──────────────────── */
 
-/* Bottom right: say which room something crazy is going on in. There's
-   nothing crazy yet, so for now every report comes back with nothing
-   found; checkAnomaly(camIndex) is where it'll be looked up. */
+/* Bottom right: say which room something crazy is going on in. A couple
+   of seconds later it's checked: if something crazy really is going on
+   there, the feed scrambles and it's gone (scramble); if not, nothing
+   found. */
 const reportBtn = $('reportBtn'), reportList = $('reportList'), reportMsg = $('reportMsg');
 let reportSteps = [];
-function checkAnomaly(cam) { return false; }
 // one button per cam, then cancel
 for (const [i, c] of [...CAMS.entries(), [-1, { name: 'cancel' }]]) {
   const b = document.createElement('button');
@@ -522,20 +548,89 @@ function fileReport(cam) {
   openReport(false);
   if (cam < 0) return;
   const t = performance.now();
+  const name = CAMS[cam].name;
   reportSteps = [
-    [t, `reporting: ${CAMS[cam].name}...`],
-    [t + 2200, checkAnomaly(cam) ? 'craziness fixed' : 'no craziness found'],
+    [t, `reporting: ${name}...`],
+    [t + 2200, () => {
+      if (!craziness.inRoom(name).length) return 'no craziness found';
+      scramble(name);
+      return null;
+    }],
     [t + 4600, null]
   ];
 }
 function tickReport(now) {
   while (reportSteps.length && now >= reportSteps[0][0]) {
-    const [, text] = reportSteps.shift();
+    let [, text] = reportSteps.shift();
+    if (typeof text === 'function') text = text();
     reportMsg.hidden = !text;
     if (text) reportMsg.textContent = text;
   }
 }
-reportBtn.addEventListener('click', () => { if (reportSteps.length) return; openReport(reportList.hidden); reportBtn.blur(); });
+
+/* ─── craziness ─────────────────────────────── */
+
+/* Confirmed: the feed scrambles violently for a couple of seconds with
+   "that WAS crazy" over it, and halfway through, while nobody can see,
+   the craziness in that room is put right. */
+const SCRAMBLE = 2.4;          // seconds
+const banner = $('crazyBanner'), warning = $('crazyWarning'), deadMenu = $('deadMenu');
+let scrambleStart = -1e9, scrambleRoom = null, warnBeepAt = 0, dieStart = 0;
+function scramble(room) {
+  scrambleStart = performance.now();
+  scrambleRoom = room;
+  banner.hidden = false;
+  sounds.scramble();
+  if (!debug.composite) { frame.classList.remove('cut'); void frame.offsetWidth; frame.classList.add('cut'); }
+}
+
+// every frame while playing: new craziness on schedule, the scramble, the warning, overload
+function tickCraziness(now) {
+  if (state === 'playing' && !pausedAt) craziness.update(shiftSeconds(), CAMS[camIndex].name);
+  // the scramble
+  const sc = (now - scrambleStart) / 1000;
+  if (sc < SCRAMBLE) {
+    const k = Math.min(1, sc / 0.25, (SCRAMBLE - sc) / 0.6);          // in hard, out a little softer
+    Object.assign(analog.controls, { glitch: 0.8 * k, twitchY: Math.random(), twitchW: 0.12 + 0.25 * Math.random(),
+      twitchNoise: 0.6 * k, twitchX: (Math.random() - 0.5) * 0.18 * k });
+    if (scrambleRoom && sc > SCRAMBLE * 0.45) { craziness.clearRoom(scrambleRoom); scrambleRoom = null; }
+  } else if (!banner.hidden) banner.hidden = true;
+  // too much going on: a warning, then craziness overload
+  const level = craziness.level();
+  const warn = level >= WARNING && state === 'playing';
+  warning.hidden = !warn || Math.floor(now / 500) % 2 === 1;                 // blinking
+  if (warn && now > warnBeepAt) { sounds.warn(); warnBeepAt = now + 5000; }
+  if (!warn) warnBeepAt = 0;
+  if (level >= OVERLOAD && state === 'playing') {
+    if (debug.noDeath) warning.textContent = 'craziness overload (debug: you live)';
+    else { state = 'dying'; dieStart = now; sounds.overload(); openReport(false); }
+  } else if (warn) warning.textContent = 'craziness rising: report it before it gets too crazy';
+  // dying: the picture sinks into snow, then the way out
+  if (state === 'dying') {
+    const p = Math.min(1, (now - dieStart) / 2600);
+    Object.assign(analog.controls, { signalLevel: 1 - p, snow: 0.4 * p, glitch: Math.min(1, p * 1.5), twitchY: Math.random(), twitchW: 0.2, twitchNoise: p, twitchX: (Math.random() - 0.5) * 0.1 * p });
+    if (p >= 1) { state = 'dead'; deadMenu.hidden = false; frame.classList.add('dead'); warning.hidden = true; banner.hidden = true; }
+  }
+}
+
+// a fresh shift: midnight, nothing crazy, a new schedule
+function resetShift() {
+  shiftStart = performance.now();
+  pausedAt = 0; pausedFor = 0;
+  craziness.reset();
+  scrambleStart = -1e9; scrambleRoom = null; warnBeepAt = 0;
+  banner.hidden = true; warning.hidden = true; deadMenu.hidden = true;
+  frame.classList.remove('dead');
+  reportSteps = []; reportMsg.hidden = true; openReport(false);
+}
+$('retryBt').addEventListener('click', e => {
+  e.currentTarget.blur();
+  resetShift();
+  state = 'playing';
+  showCam(0);
+});
+$('menuBt').addEventListener('click', e => { e.currentTarget.blur(); quit(); });
+reportBtn.addEventListener('click', () => { if (reportSteps.length || state !== 'playing') return; openReport(reportList.hidden); reportBtn.blur(); });
 reportList.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { fileReport(Number(b.dataset.cam)); b.blur(); } });
 
 /* ─── the options menu (Esc) ───────────────── */
@@ -544,6 +639,9 @@ const pauseMenu = $('pauseMenu');
 function openPause(open) {
   pauseMenu.hidden = !open;
   if (open) openReport(false);
+  // the shift (its clock, and craziness) stands still while it's open
+  if (open && !pausedAt) pausedAt = performance.now();
+  if (!open && pausedAt) { pausedFor += performance.now() - pausedAt; pausedAt = 0; }
 }
 $('resumeBt').addEventListener('click', e => { openPause(false); e.currentTarget.blur(); });
 $('quitBt').addEventListener('click', e => { e.currentTarget.blur(); quit(); });
@@ -557,7 +655,7 @@ function start() {
   if (!scene) setup();
   state = 'playing';
   tv.play();
-  shiftStart = performance.now();
+  resetShift();
   startBt.blur();
   frame.classList.add('playing');
   showCam(0);
@@ -566,6 +664,7 @@ function start() {
 function quit() {
   state = 'title';
   openPause(false);
+  deadMenu.hidden = true; frame.classList.remove('dead');
   openReport(false); reportSteps = []; reportMsg.hidden = true;
   tv.pause();
   analog.heldSignals.clear();
@@ -590,6 +689,7 @@ addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); start(); }
     return;
   }
+  if (state === 'dying' || state === 'dead') return;
   if (!pauseMenu.hidden && e.key !== 'Escape') return;
   if (/^KeyW$/.test(e.code)) {
     e.preventDefault();
