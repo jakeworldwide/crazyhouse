@@ -315,10 +315,13 @@ walls, a red front door, and so on. They're all in `MAT` near the top of
 
 Like a real security cam: switching it on turns on an infrared light at
 the camera that floods the room it's watching, and the picture goes
-bright, green and grainy, with dark corners (the signal goes monochrome
-before composite encoding, then `.night` in the CSS tints it and lays
-grain over it). Lamps blow out and ghoul1's pupils glow. Strength is
-`IR_STRENGTH` and `NV_GAIN` in `main.js`.
+green and grainy, with dark corners (the signal goes monochrome before
+composite encoding, then `.night` in the CSS tints it and lays grain over
+it). The IR light falls off gently (linear, not squared) so what's near
+the cam isn't blown out. Switching it on or off rolls a band of tracking
+trouble up the picture from the bottom (`SWEEP`). Lamps blow out and
+ghoul1's pupils glow. Strength is `IR_STRENGTH` and `NV_GAIN` in
+`main.js`.
 
 ## The feed
 

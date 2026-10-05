@@ -1025,9 +1025,10 @@ function livingRoom() {
     endTable('side-table', 555, 598, 193, 237, 2),
     table,
     named('dining-chairs',
-      at(chair(), 644, 492, 90), at(chair(), 644, 555, 90),
-      at(chair(), 746, 492, -90), at(chair(), 746, 555, -90),
-      at(chair(), 695, 443, 0), at(chair(), 695, 602, 180)
+      // not quite tucked in: each a little off, and one pushed back and turned out
+      at(chair(), 641, 494, 96), at(chair(), 646, 553, 84),
+      at(chair(), 749, 489, -97), at(chair(), 758, 562, -58),
+      at(chair(), 698, 441, 4), at(chair(), 692, 605, 175)
     ),
     woodStove(),
     fire(),
@@ -3064,7 +3065,7 @@ function pullBulb(lamps, name, cx, cy, intensity) {
     tint(solid(new THREE.CylinderGeometry(0.06, 0.07, 0.16, 10), [0, -drop - 0.08, 0]), MAT.dark),   // socket
     glow(new THREE.SphereGeometry(0.13, 10, 8), 0, -drop - 0.26, 0),
     lines([[[0.07, -drop - 0.12, 0], [0.07, -drop - 1.3, 0]]], new THREE.LineBasicMaterial({ color: 0xd8d0c0 })),   // pull string
-    tint(solid(new THREE.SphereGeometry(0.03, 6, 4), [0.07, -drop - 1.32, 0]), MAT.cream));                       // its bead
+    small(tint(solid(new THREE.SphereGeometry(0.03, 6, 4), [0.07, -drop - 1.32, 0]), MAT.cream)));                // its bead (no shadow: it hangs below the bulb and threw a dot on the floor)
   // the light hangs in the bulb and swings with it. Its shadows follow:
   // redrawn every other frame, at half size, reaching only 16 feet, so it
   // stays cheap.

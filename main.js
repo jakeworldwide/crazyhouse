@@ -4,7 +4,7 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { buildWorld, ROOMS, roomAt, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=42';
+import { buildWorld, ROOMS, roomAt, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=43';
 import { buildPVS } from './pvs.js?v=1';
 import { createEmp } from './emp.js?v=6';
 import { CAMS, camAt } from './cams.js?v=8';
@@ -12,7 +12,7 @@ import { createGhoul } from './ghoul.js?v=12';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
-import { createAnalogPass } from './analog.js?v=33';
+import { createAnalogPass } from './analog.js?v=34';
 import { createOsd } from './osd.js?v=3';
 
 
@@ -32,7 +32,7 @@ const debug = { composite: true, free: false, fov: null, tick: null, onCam: null
 let camIndex = 0;
 export function setComposite(enabled){debug.composite=Boolean(enabled);}
 let renderer, scene, camera, ghoul, ghost, lamps, emp, ticks, ir, tv, analog, pvs, osd, osdTex;
-const EXPOSURE = 0.75;         // overall brightness of the picture
+const EXPOSURE = 0.66;         // overall brightness of the picture
 const RESOLUTION = 1;          // pixel ratio (window.devicePixelRatio for full retina sharpness, at 4x the cost)
 const buffer = new THREE.Vector2();
 let shiftStart = 0;
@@ -225,7 +225,7 @@ function setup() {
   emp = createEmp(scene);
   // the camera's infrared light: off until night vision is on (always in
   // the scene so switching it on doesn't make the browser stall)
-  ir = new THREE.PointLight(0xffffff, 0, 0, 2);
+  ir = new THREE.PointLight(0xffffff, 0, 0, 1);     // falls off gently, so what's near the cam isn't blown out
   scene.add(ir);
   // ...so the lights have to reach that layer too, and their shadows include him
   scene.traverse(o => {
@@ -285,7 +285,7 @@ function loop(now) {
   lastFrame = now;
   if (state !== 'playing' || !scene) {
     // the title: a dead channel, nothing but snow
-    Object.assign(analog.controls, { signalLevel: 1, snow: 0.04, glitch: 0, fisheye: 0, monochrome: false });
+    Object.assign(analog.controls, { signalLevel: 1, snow: 0.04, glitch: 0, fisheye: 0, monochrome: false, twitchW: 0.03, twitchNoise: 0 });
     if (osd.update('title', now)) osdTex.needsUpdate = true;
     titleTwitch(now);
     analog.snow(now / 1000);
@@ -293,7 +293,11 @@ function loop(now) {
     return;
   }
   glitch = Math.max(0, glitch - dt);
-  Object.assign(analog.controls, { signalLevel: 1, snow: 0, glitch: glitch / GLITCH, fisheye: debug.fp || debug.free ? 0 : FISHEYE, twitchY: -1 });
+  Object.assign(analog.controls, { signalLevel: 1, snow: 0, glitch: glitch / GLITCH, fisheye: debug.fp || debug.free ? 0 : FISHEYE });
+  // night vision switching: a wide band of tracking trouble rolls from the bottom to the top
+  const sweep = (now - sweepStart) / (SWEEP * 1000);
+  if (sweep < 1) Object.assign(analog.controls, { twitchY: sweep * 1.3 - 0.15, twitchW: 0.11, twitchNoise: 0.55, twitchX: 0.035 * Math.sin(now * 0.09) });
+  else Object.assign(analog.controls, { twitchY: -1, twitchW: 0.03, twitchNoise: 0 });
   analog.stats.renderFrames=(analog.stats.renderFrames??0)+1;
   if(analog.stats.renderStart===undefined)analog.stats.renderStart=now;
   const renderElapsed=now-analog.stats.renderStart;
@@ -401,14 +405,17 @@ function tickEmp() {
 /* Like a real security cam: switching to night vision turns on an
    infrared light at the camera that floods the room it's watching,
    and the picture gets brighter, green and grainy. */
-const IR_STRENGTH = 900;
-const NV_GAIN = 3;            // how much brighter the picture gets
+const IR_STRENGTH = 26;
+const NV_GAIN = 1.5;          // how much brighter the picture gets
+const SWEEP = 0.5;            // seconds: switching it on or off rolls a tracking band up the picture
+let sweepStart = -1e9;
 let night = false;
 const nvBt = $('nv');
 
 function toggleNight() {
   if (state !== 'playing') return;
   night = !night;
+  sweepStart = performance.now();
   frame.classList.toggle('night', night);
   nvBt.classList.toggle('on', night);
   nvBt.setAttribute('aria-pressed', night);

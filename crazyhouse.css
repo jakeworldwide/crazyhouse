@@ -252,7 +252,7 @@ canvas { pointer-events: none; }
    signal goes monochrome; this makes it look like an IR feed: green,
    grainy, vignetted. */
 .night canvas {
-  filter: grayscale(1) sepia(1) hue-rotate(52deg) saturate(2.4) contrast(1.15) brightness(1.05);
+  filter: grayscale(1) sepia(1) hue-rotate(52deg) saturate(2.2) contrast(1.1) brightness(0.92);
 }
 .nv-layer {
   position: absolute;
