@@ -22,9 +22,9 @@ export function createSounds() {
       ctx = new AC();
       // everything through a gentle compressor, so stacked clicks don't clip
       const comp = ctx.createDynamicsCompressor();
-      comp.threshold.value = -14; comp.ratio.value = 4;
+      comp.threshold.value = -10; comp.ratio.value = 3;
       out = ctx.createGain();
-      out.gain.value = 0.7;
+      out.gain.value = 1.15;
       out.connect(comp).connect(ctx.destination);
       // a second of white noise, reused for every click and hiss
       noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
@@ -70,16 +70,18 @@ export function createSounds() {
     if (!ctx) return;
     const t = ctx.currentTime + 0.005, jitter = () => 0.9 + Math.random() * 0.2;
     // the dial's detent: a hard plastic clack, then the spring settling it a moment later
-    burst(t, { freq: 2600 * jitter(), q: 1.4, gain: 0.9, decay: 0.018 });
-    burst(t, { type: 'highpass', freq: 5000, gain: 0.35, decay: 0.008 });
-    burst(t + 0.045, { freq: 3400 * jitter(), q: 2, gain: 0.35, decay: 0.012 });
-    // the cabinet: a hollow wooden thunk
-    thump(t, { from: 150 * jitter(), to: 62, gain: 0.75, decay: 0.11 });
-    thump(t, { from: 310 * jitter(), to: 180, gain: 0.18, decay: 0.05, type: 'triangle' });
+    burst(t, { freq: 1900 * jitter(), q: 1.2, gain: 1, decay: 0.022 });
+    burst(t, { type: 'highpass', freq: 4500, gain: 0.3, decay: 0.008 });
+    burst(t + 0.05, { freq: 2600 * jitter(), q: 1.8, gain: 0.4, decay: 0.014 });
+    // the cabinet: a deep hollow wooden thunk, with a punch of sub bass under it
+    thump(t, { from: 105 * jitter(), to: 40, gain: 1, decay: 0.2 });
+    thump(t, { from: 62, to: 28, gain: 0.9, decay: 0.3 });
+    thump(t, { from: 240 * jitter(), to: 120, gain: 0.25, decay: 0.07, type: 'triangle' });
+    burst(t, { type: 'lowpass', freq: 380, q: 0.7, gain: 0.6, decay: 0.09 });             // the knock of the box itself
     // the tube: flyback whine ticking as the picture drops out and comes back
     thump(t + 0.01, { from: 7800, to: 7600, gain: 0.025, decay: 0.09, type: 'sine' });
     // static while it locks onto the new channel, falling away
-    burst(t + 0.02, { freq: 3200, q: 0.6, gain: 0.16, attack: 0.01, decay: 0.32, sweepTo: 900, length: 0.36 });
+    burst(t + 0.02, { freq: 3200, q: 0.6, gain: 0.22, attack: 0.01, decay: 0.32, sweepTo: 900, length: 0.36 });
   }
 
   function relay() {

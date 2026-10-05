@@ -96,6 +96,10 @@ export function createDebug(api) {
   });
   signalWindow.querySelector('[data-act="signal-close"]').addEventListener('click', () => signalWindow.close());
   const $ = sel => panel.querySelector(sel) || signalWindow.querySelector(sel);
+  // click 'debug' to fold the panel up (and again to open it)
+  const title = panel.querySelector('.dbg-title');
+  title.title = 'fold up';
+  title.addEventListener('click', () => panel.classList.toggle('folded'));
   const btn = act => $(`[data-act="${act}"]`);
   const out = name => $(`[data-out="${name}"]`);
 

@@ -18,7 +18,7 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { walkHeight } from './world.js?v=43';
+import { walkHeight } from './world.js?v=44';
 
 const EYE = 5.3;               // eye height, feet
 const RADIUS = 0.6;            // how close you can get to things (doorways are under 3 feet)

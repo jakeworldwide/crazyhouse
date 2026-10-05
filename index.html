@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=VT323&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="crazyhouse.css?v=19" />
+  <link rel="stylesheet" href="crazyhouse.css?v=20" />
 </head>
 <body>
 
@@ -42,6 +42,13 @@
       </div>
     </div>
 
+    <!-- Esc: the options menu, drawn into the feed like the rest of its text -->
+    <div class="pause-menu" id="pauseMenu" data-osd="hud" hidden>
+      <div class="pause-title" data-osd="hud">paused</div>
+      <button id="resumeBt" data-osd="hud">resume</button>
+      <button id="quitBt" data-osd="hud">quit to menu</button>
+    </div>
+
     <div class="cut-flash" aria-hidden="true"></div>
     <div class="emp-flash" aria-hidden="true"></div>
 
@@ -56,6 +63,6 @@
 
   </div>
 
-  <script type="module" src="main.js?v=64"></script>
+  <script type="module" src="main.js?v=67"></script>
 </body>
 </html>

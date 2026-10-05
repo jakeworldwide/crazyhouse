@@ -165,7 +165,7 @@ canvas { pointer-events: none; }
   top: 50%;
   transform: translateY(-50%);
   width: max(48px, 7cqw);
-  height: max(84px, 14cqw);
+  height: max(64px, 10.5cqw);
   color: rgba(255, 255, 255, 0.78);
   --osd-stroke: 7;               /* the chevron's line, in overlay pixels (osd.js draws it) */
   display: grid;
@@ -302,6 +302,36 @@ canvas { pointer-events: none; }
 .report-list[hidden], .report-msg[hidden] { display: none; }
 .frame.first-person .feed-controls { display: none; }
 
+/* Esc: the options menu, in the middle of the feed, the picture dimmed behind it */
+.pause-menu {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  background: rgba(0, 0, 0, 0.55);
+  font-family: 'VT323', ui-monospace, Menlo, monospace;
+  font-size: max(18px, 3.4cqw);
+  line-height: 1;
+  letter-spacing: 0.06em;
+}
+.pause-menu[hidden] { display: none; }
+.pause-title, .pause-menu button {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: uppercase;
+  color: #fff;
+  background: #000;
+  border: none;
+  padding: 0.12em 0.5em 0.04em;
+}
+.pause-title { margin-bottom: 0.6em; }
+.pause-menu button { cursor: pointer; min-width: 8em; }
+.pause-menu button:hover, .pause-menu button:focus-visible { outline: none; background: #fff; color: #000; }
+
 /* the feed's text is drawn into the picture by osd.js (under the NTSC
    fuzz); the page's own copy stays invisible, there to be clicked */
 .frame [data-osd] { opacity: 0 !important; }
@@ -323,7 +353,10 @@ canvas { pointer-events: none; }
   flex-direction: column;
   gap: 7px;
 }
-.debug-panel .dbg-title { font: 500 15px 'EB Garamond', serif; letter-spacing: 0.08em; }
+.debug-panel .dbg-title { font: 500 15px 'EB Garamond', serif; letter-spacing: 0.08em; cursor: pointer; user-select: none; }
+.debug-panel.folded { width: auto; }
+.debug-panel.folded > :not(.dbg-title) { display: none; }
+.debug-panel.folded .dbg-title::after { content: ' +'; opacity: 0.6; }
 .debug-panel .dbg-help { color: #aaa; font-size: 11px; }
 .debug-panel label { display: flex; align-items: center; gap: 6px; }
 .debug-panel input[type=range] { flex: 1; min-width: 0; accent-color: #fff; }

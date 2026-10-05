@@ -4,7 +4,7 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { buildWorld, ROOMS, roomAt, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=43';
+import { buildWorld, ROOMS, roomAt, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=44';
 import { buildPVS } from './pvs.js?v=1';
 import { createEmp } from './emp.js?v=6';
 import { CAMS, camAt } from './cams.js?v=8';
@@ -14,7 +14,7 @@ import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
 import { createAnalogPass } from './analog.js?v=35';
 import { createOsd } from './osd.js?v=4';
-import { createSounds } from './sound.js?v=1';
+import { createSounds } from './sound.js?v=2';
 
 
 const $ = id => document.getElementById(id);
@@ -260,7 +260,7 @@ function setup() {
       isNight: () => night, camIndex: () => camIndex
     };
     window.crazyhouse = api;
-    import('./debug.js?v=20').then(m => m.createDebug(api));
+    import('./debug.js?v=21').then(m => m.createDebug(api));
   }
 
   return true;
@@ -269,7 +269,7 @@ function setup() {
 /* ─── every frame ───────────────────────────── */
 
 const GLITCH = 0.45;           // seconds of signal trouble when the feed switches cams
-const FISHEYE = 0.3;           // the cams' wide lens (0 is a flat picture)
+const FISHEYE = 0.2;           // the cams' wide lens (0 is a flat picture)
 let glitch = 0;
 // the title's tracking twitch: now and then a band of lines slips sideways for a moment
 let twitchAt = 0, twitchUntil = 0;
@@ -296,10 +296,15 @@ function loop(now) {
     return;
   }
   glitch = Math.max(0, glitch - dt);
-  Object.assign(analog.controls, { signalLevel: 1, snow: 0, glitch: glitch / GLITCH, fisheye: debug.fp || debug.free ? 0 : FISHEYE });
-  // night vision switching: a wide band of tracking trouble rolls from the bottom to the top
-  const sweep = (now - sweepStart) / (SWEEP * 1000);
-  if (sweep < 1) Object.assign(analog.controls, { twitchY: sweep * 1.3 - 0.15, twitchW: 0.11, twitchNoise: 0.55, twitchX: 0.035 * Math.sin(now * 0.09) });
+  Object.assign(analog.controls, { signalLevel: 1, snow: 0, glitch: glitch / GLITCH, fisheye: debug.fp ? 0 : FISHEYE });     // (the free cam keeps the lens, so its view matches the cams')
+  // night vision switching: the picture goes out completely for a moment (anything
+  // can happen behind it), then a wide band of tracking trouble rolls up as it comes back
+  const nvT = (now - sweepStart) / 1000;
+  if (nvT < BLACKOUT) Object.assign(analog.controls, { signalLevel: 0.02, glitch: 1 });
+  if (nvT >= BLACKOUT * 0.45) applyNight();                // halfway through the dark, the picture switches
+  else if (!nvBack) { nvBack = true; glitch = GLITCH; }
+  const sweep = (nvT - BLACKOUT) / SWEEP;
+  if (sweep >= 0 && sweep < 1) Object.assign(analog.controls, { twitchY: sweep * 1.3 - 0.15, twitchW: 0.11, twitchNoise: 0.55, twitchX: 0.035 * Math.sin(now * 0.09) });
   else Object.assign(analog.controls, { twitchY: -1, twitchW: 0.03, twitchNoise: 0 });
   analog.stats.renderFrames=(analog.stats.renderFrames??0)+1;
   if(analog.stats.renderStart===undefined)analog.stats.renderStart=now;
@@ -309,7 +314,7 @@ function loop(now) {
   else ghoul.presence = 0;
   emp.update(dt);
   tv.update(dt);
-  analog.controls.monochrome = night;
+  analog.controls.monochrome = nightShown === true;     // (follows the picture, which switches in the dark)
   if (debug.tick) debug.tick(dt);
   ir.position.copy(camera.position);
   // free cam or a changed FOV can see anything, so cull nothing then
@@ -411,21 +416,35 @@ function tickEmp() {
    and the picture gets brighter, green and grainy. */
 const IR_STRENGTH = 20;
 const NV_GAIN = 1.2;          // how much brighter the picture gets
-const SWEEP = 0.5;            // seconds: switching it on or off rolls a tracking band up the picture
-let sweepStart = -1e9;
+const BLACKOUT = 0.25;        // seconds the picture is completely out when it switches
+const SWEEP = 0.5;            // seconds: then a tracking band rolls up the picture
+let sweepStart = -1e9, nvBack = true;
 let night = false;
 const nvBt = $('nv');
 
 function toggleNight() {
   if (state !== 'playing') return;
   night = !night;
-  // the switch-over rocks the signal like changing cams, with a tracking band rolling up through it
+  // the switch-over knocks the signal out completely for a moment, then it rolls back
+  // like changing cams. Anything that wants to change while nobody can see (a
+  // jumpscare, say) listens for 'crazyhouse:blackout'.
   sweepStart = performance.now();
-  glitch = GLITCH;
+  nvBack = false;
   sounds.relay();
-  frame.classList.toggle('night', night);
+  dispatchEvent(new CustomEvent('crazyhouse:blackout', { detail: { night, seconds: BLACKOUT } }));
+  if (!debug.composite) { frame.classList.remove('cut'); void frame.offsetWidth; frame.classList.add('cut'); }
   nvBt.classList.toggle('on', night);
   nvBt.setAttribute('aria-pressed', night);
+  // the picture itself only switches once it's gone dark (applyNight, from the loop)
+  nightShown = null;
+}
+
+// the night vision look and light, switched while the picture is out
+let nightShown = false;
+function applyNight() {
+  if (nightShown === night) return;
+  nightShown = night;
+  frame.classList.toggle('night', night);
   ir.intensity = night ? IR_STRENGTH : 0;
   renderer.toneMappingExposure = EXPOSURE * (night ? NV_GAIN : 1);
 }
@@ -483,6 +502,16 @@ function tickReport(now) {
 reportBtn.addEventListener('click', () => { if (reportSteps.length) return; openReport(reportList.hidden); reportBtn.blur(); });
 reportList.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { fileReport(Number(b.dataset.cam)); b.blur(); } });
 
+/* ─── the options menu (Esc) ───────────────── */
+
+const pauseMenu = $('pauseMenu');
+function openPause(open) {
+  pauseMenu.hidden = !open;
+  if (open) openReport(false);
+}
+$('resumeBt').addEventListener('click', e => { openPause(false); e.currentTarget.blur(); });
+$('quitBt').addEventListener('click', e => { e.currentTarget.blur(); quit(); });
+
 /* ─── start / quit ──────────────────────────── */
 
 function start() {
@@ -500,6 +529,7 @@ function start() {
 
 function quit() {
   state = 'title';
+  openPause(false);
   openReport(false); reportSteps = []; reportMsg.hidden = true;
   tv.pause();
   analog.heldSignals.clear();
@@ -524,6 +554,7 @@ addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); start(); }
     return;
   }
+  if (!pauseMenu.hidden && e.key !== 'Escape') return;
   if (/^KeyW$/.test(e.code)) {
     e.preventDefault();
     analog.heldSignals.add(e.code);
@@ -543,7 +574,8 @@ addEventListener('keydown', e => {
   } else if (e.key === 'b' || e.key === 'B') {
     e.preventDefault(); fireEmp();
   } else if (e.key === 'Escape') {
-    quit();
+    if (!reportList.hidden) openReport(false);
+    else openPause(pauseMenu.hidden);
   }
 });
 // Hold generators to inject; release or lose focus to disconnect all voltage sources.

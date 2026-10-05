@@ -271,7 +271,7 @@ matters:
   swaying laundry bulb only redraws its shadows while a cam can see it.
 
 **Colours.** Everything is a flat colour, no texture images, so it costs
-nothing extra to draw: green lawn, concrete walk, wood floors, warm
+nothing extra to draw: green lawn, a worn dirt path, wood floors, warm
 walls, a red front door, and so on. They're all in `MAT` near the top of
 `world.js`, and `paint()` decides which thing gets which.
 
@@ -318,9 +318,14 @@ the camera that floods the room it's watching, and the picture goes
 green and grainy, with dark corners (the signal goes monochrome before
 composite encoding, then `.night` in the CSS tints it and lays grain over
 it). The IR light falls off gently (linear, not squared) so what's near
-the cam isn't blown out. Switching it on or off rolls a band of tracking
-trouble up the picture from the bottom (`SWEEP`), and the signal breaks
-up like a cam switch. Lamps blow out and
+the cam isn't blown out. Switching it on or off knocks the signal out
+completely for a moment (`BLACKOUT`, a quarter second of dark snow, the
+text and all), the picture switches while it's out, then a band of
+tracking trouble rolls up from the bottom (`SWEEP`) as it comes back,
+breaking up like a cam switch. Anything that should change while nobody
+can see (a jumpscare that's only there in night vision, say) can listen
+for it: `addEventListener('crazyhouse:blackout', e => ...)`, with
+`e.detail.night` true when it's switching on. Lamps blow out and
 ghoul1's pupils glow. Strength is `IR_STRENGTH` and `NV_GAIN` in
 `main.js`.
 
@@ -358,6 +363,8 @@ ghoul1's pupils glow. Strength is `IR_STRENGTH` and `NV_GAIN` in
   wrong in. There's nothing crazy yet, so every report comes back "no
   craziness found"; `checkAnomaly(cam)` in `main.js` is where it'll be
   looked up.
+- **Esc** opens the options menu (in the feed like the rest of its text):
+  resume, or quit to the title.
 - **The EMP** has no button for now; B still fires it.
 
 ## ghoul1

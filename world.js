@@ -2884,27 +2884,38 @@ function driveway() {
 }
 
 function path() {
-  // the front walk: a concrete ribbon following WALK over the ground, with joints every few feet
-  const n = 160, hw = 2, pts = WALK.getSpacedPoints(n), pos = [], joints = [];
-  const at = (p, side, t) => {
-    const nx = -t.z, nz = t.x, l = Math.hypot(nx, nz), x = p.x + side * hw * nx / l, z = p.z + side * hw * nz / l;
-    return [x, groundHeight(x, z) + 0.05, z];
-  };
-  const rows = pts.map((p, i) => {
-    const t = WALK.getTangentAt(i / n);
-    return [at(p, 1, t), at(p, -1, t)];
-  });
-  for (let i = 1; i <= n; i++) {
-    const [a, b] = rows[i - 1], [c, d] = rows[i];
-    pos.push(...a, ...b, ...c, ...b, ...d, ...c);
-    if (i % 3 === 0) joints.push([c, d]);
+  // the front walk: a worn dirt path following WALK, packed darker down the
+  // middle where people tread, its edges wandering and fading raggedly into the grass
+  const n = 220, across = 10, hw = 3.4, pts = WALK.getSpacedPoints(n);
+  const DIRT = new THREE.Color(0x6e5436), PACKED = new THREE.Color(0x4f3c27), c = new THREE.Color();
+  const pos = [], col = [], index = [];
+  for (let i = 0; i <= n; i++) {
+    const p = pts[i], t = WALK.getTangentAt(i / n), l = Math.hypot(t.x, t.z), nx = -t.z / l, nz = t.x / l;
+    const half = 1.6 + 0.35 * Math.sin(i * 0.21) + 0.2 * Math.sin(i * 0.53 + 1);        // the trodden width wanders
+    for (let j = 0; j <= across; j++) {
+      const off = (j / across * 2 - 1) * hw, x = p.x + off * nx, z = p.z + off * nz;
+      pos.push(x, groundHeight(x, z) + 0.03, z);
+      const worn = 1 - THREE.MathUtils.smoothstep(Math.abs(off), 0.2, 1.3);
+      c.copy(DIRT).lerp(PACKED, 0.55 * worn);
+      c.offsetHSL(0, 0, 0.025 * Math.sin(x * 3.1 + z) * Math.sin(z * 2.7 - x));            // a few lumps and stones
+      const edge = Math.abs(off) - half + wobble(x, z) * 0.4;
+      c.lerp(GRASS, THREE.MathUtils.smoothstep(edge, -0.5, 0.9));
+      col.push(c.r, c.g, c.b);
+    }
+  }
+  for (let i = 0; i < n; i++) for (let j = 0; j < across; j++) {
+    const a = i * (across + 1) + j, b = a + 1, c2 = a + across + 1, d = c2 + 1;
+    index.push(a, c2, b, b, c2, d);
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  geo.setIndex(index);
   geo.computeVertexNormals();
-  const walk = new THREE.Mesh(geo, MAT.concrete);
-  walk.material.side = THREE.DoubleSide;
-  return named('path', walk, lines(joints, new THREE.LineBasicMaterial({ color: 0x6b675f })));   // expansion joints
+  const walk = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: THREE.DoubleSide,
+    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+  walk.userData.keep = true;
+  return named('path', walk);
 }
 
 

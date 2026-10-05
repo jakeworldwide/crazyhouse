@@ -17,7 +17,7 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { X, Z, FLOOR, surface, solid, lines, roomAt } from './world.js?v=43';
+import { X, Z, FLOOR, surface, solid, lines, roomAt } from './world.js?v=44';
 
 /* The loop he walks, in blueprint pixels (same as world.js), through
    the doorways and around the furniture. It's smoothed into a curve.
