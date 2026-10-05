@@ -13,10 +13,11 @@
    happen and keeps track of what's going on.
 
    The shift runs from midnight to 6 AM (main.js sets how long an hour
-   is). Crazinesses spawn on a schedule worked out when the shift starts:
-     12 to 2 AM: 2 or 3 in all
-     2 to 4 AM:  3 or 4 an hour
-     4 to 6 AM:  5 or 6 an hour
+   is). Crazinesses spawn on a schedule worked out when the shift starts,
+   about 30 in a night:
+     12 to 2 AM: 4 or 5 in all
+     2 to 4 AM:  5 or 6 an hour
+     4 to 6 AM:  7 or 8 an hour
    Higher intensities unlock as the night goes on (up to 2 before 2 AM,
    3 before 4 AM, then all of them); the milder ones keep turning up
    too, the newest intensity just comes up a bit more often. Nothing
@@ -32,6 +33,10 @@
 
    The overload level counts what's going on at once; an intensity 4
    counts double.
+
+   An approach craziness (approach: 20) is coming for the cam: its
+   frame() moves it closer over that many seconds, and if it isn't
+   reported by then, overdue() names it and main.js ends the shift.
    ============================================================ */
 
 export const WARNING = 3;      // level: "it's getting crazy"
@@ -62,9 +67,9 @@ export function createCraziness({ list, ctx, hour }) {
     const block = (h0, h1, n) => {           // n spread over hours h0..h1, each in its own slice, jittered
       for (let i = 0; i < n; i++) times.push((h0 + (h1 - h0) * (i + 0.15 + 0.7 * Math.random()) / n) * hour);
     };
-    block(0, 2, rand(2, 3));
-    block(2, 3, rand(3, 4)); block(3, 4, rand(3, 4));
-    block(4, 5, rand(5, 6)); block(5, 6, rand(5, 6));
+    block(0, 2, rand(4, 5));
+    block(2, 3, rand(5, 6)); block(3, 4, rand(5, 6));
+    block(4, 5, rand(7, 8)); block(5, 6, rand(7, 8));
     return times.map(t => Math.max(t, 40)).sort((a, b) => a - b);   // nothing in the first 40 seconds
   }
 
@@ -75,7 +80,7 @@ export function createCraziness({ list, ctx, hour }) {
     def.start(ctx);
     starting = null;
     used.add(def.name);
-    active.set(def.name, { def, at: t });
+    active.set(def.name, { def, at: t, age: 0 });
     touch(def);
     return true;
   }
@@ -115,8 +120,13 @@ export function createCraziness({ list, ctx, hour }) {
         else { schedule[0] = t + 8; break; }                        // nothing can happen right now: try again shortly
       }
     },
-    // every frame (dt seconds): moves anything that's mid-move
+    // every frame (dt seconds, 0 while paused): moves anything that's mid-move, and
+    // calls frame(ctx, age, p) on whatever has one (p: how far along an approach is, 0..1)
     step(dt) {
+      for (const a of active.values()) {
+        a.age += dt;
+        if (a.def.frame) a.def.frame(ctx, a.age, a.def.approach ? Math.min(1, a.age / a.def.approach) : null);
+      }
       for (const tw of [...tweens]) {
         tw.t = Math.min(1, tw.t + dt / tw.seconds);
         tw.f(tw.t * tw.t * (3 - 2 * tw.t));
@@ -128,6 +138,10 @@ export function createCraziness({ list, ctx, hour }) {
     inRoom: cam => [...active.values()].filter(a => camsOf(a.def).includes(cam)).map(a => a.def.name),
     // reported and confirmed: it's over
     clearRoom(cam) { for (const a of [...active.values()]) if (camsOf(a.def).includes(cam)) stop(a.def.name); },
+    // approaches that weren't reported in time
+    overdue: () => [...active.values()].filter(a => a.def.approach && a.age >= a.def.approach).map(a => a.def.name),
+    // how close the nearest approach on this cam is (0..1), or -1 if nothing's coming
+    closeness: cam => Math.max(-1, ...[...active.values()].filter(a => a.def.approach && camsOf(a.def).includes(cam)).map(a => Math.min(1, a.age / a.def.approach))),
     level: () => [...active.values()].reduce((n, a) => n + (a.def.intensity >= 4 ? 2 : 1), 0),
     active: () => [...active.keys()],
     next: () => schedule[0] ?? null,

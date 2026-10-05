@@ -364,7 +364,8 @@ export function createDebug(api) {
 
   /* ─── craziness ─── */
   const crazy = api.craziness, crazyPick = $('[data-in="crazy"]');
-  for (const d of crazy.list) {
+  const byNumber = [...crazy.list].sort((a, b) => parseInt(a.name.slice(9)) - parseInt(b.name.slice(9)));
+  for (const d of byNumber) {
     const o = document.createElement('option');
     o.value = d.name;
     o.title = d.note;

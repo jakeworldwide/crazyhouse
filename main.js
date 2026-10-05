@@ -7,16 +7,16 @@ import * as THREE from './vendor/three-r186/three.module.js';
 import { buildWorld, ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=45';
 import { buildPVS } from './pvs.js?v=1';
 import { createEmp } from './emp.js?v=7';
-import { CAMS, camAt } from './cams.js?v=9';
+import { CAMS, camAt } from './cams.js?v=10';
 import { createGhoul } from './ghoul.js?v=13';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
 import { createAnalogPass } from './analog.js?v=38';
 import { createOsd } from './osd.js?v=5';
-import { createSounds } from './sound.js?v=4';
-import { createCraziness, WARNING, OVERLOAD } from './craziness.js?v=3';
-import { CRAZINESS } from './craziness-list.js?v=6';
+import { createSounds } from './sound.js?v=5';
+import { createCraziness, WARNING, OVERLOAD } from './craziness.js?v=4';
+import { CRAZINESS } from './craziness-list.js?v=11';
 
 
 const $ = id => document.getElementById(id);
@@ -288,7 +288,7 @@ function setup() {
       isNight: () => night, camIndex: () => camIndex
     };
     window.crazyhouse = api;
-    import('./debug.js?v=25').then(m => m.createDebug(api));
+    import('./debug.js?v=26').then(m => m.createDebug(api));
   }
 
   return true;
@@ -345,7 +345,7 @@ function loop(now) {
   if (sweep >= 0 && sweep < 1) Object.assign(analog.controls, { twitchY: sweep * 1.3 - 0.15, twitchW: 0.11, twitchNoise: 0.55, twitchX: 0.035 * Math.sin(now * 0.09) });
   else Object.assign(analog.controls, { twitchY: -1, twitchW: 0.03, twitchNoise: 0 });
   tickCraziness(now);
-  craziness.step(dt);                                     // (anything a craziness is moving, mid-move)
+  craziness.step(pausedAt ? 0 : dt);                      // (anything a craziness is moving, mid-move; frozen while paused)
   analog.stats.renderFrames=(analog.stats.renderFrames??0)+1;
   if(analog.stats.renderStart===undefined)analog.stats.renderStart=now;
   const renderElapsed=now-analog.stats.renderStart;
@@ -443,7 +443,7 @@ const prev = () => showCam(camIndex - 1);
 /* ─── the clock (night shift starts at midnight) ─── */
 
 // the shift's clock: midnight at the start, and an hour goes by every 5 real minutes
-const HOUR = 5 * 60;           // real seconds per hour on the clock
+const HOUR = 4 * 60;           // real seconds per hour on the clock (4 seconds a minute)
 // seconds into the shift; stands still while the options menu is open
 let pausedAt = 0, pausedFor = 0;
 const shiftSeconds = () => ((pausedAt || performance.now()) - shiftStart - pausedFor) / 1000;
@@ -606,13 +606,15 @@ function scramble(room) {
 function showWarning() { warnUntil = shiftSeconds() + WARN_FOR; }
 // whatever's in progress stops (the end of the shift, one way or the other)
 function settle() {
+  sounds.dread(0);
   openPause(false); openReport(false);
   reportSteps = []; reportMsg.hidden = true;
   scrambleStart = -1e9; scrambleRoom = null; banner.hidden = true;
   warning.hidden = true;
 }
-function die(now) {
+function die(now, why = 'craziness overload') {
   settle();
+  $('deadTitle').textContent = why;
   state = 'dying'; dieStart = now;
   frame.classList.add('over');                     // (the controls stop working)
   sounds.overload();
@@ -648,6 +650,10 @@ function tickCraziness(now) {
   if (warn && !pausedAt && now > warnBeepAt) { sounds.warn(); warnBeepAt = now + 5000; }
   if (!warn) warnBeepAt = 0;
   if (state === 'playing' && level >= OVERLOAD && !debug.noDeath) die(now);
+  // something coming at a cam: a growing dread while you're watching it, and if it gets there, that's it
+  const close = state === 'playing' && !pausedAt ? craziness.closeness(CAMS[camIndex].name) : -1;
+  sounds.dread(close < 0 ? 0 : 0.3 + 0.7 * close);
+  if (state === 'playing' && craziness.overdue().length && !debug.noDeath) die(now, 'it got too close');
   // 6 AM: made it
   if (state === 'playing' && st >= 6 * HOUR) win(now);
   // dying: the picture sinks into snow, then the way out

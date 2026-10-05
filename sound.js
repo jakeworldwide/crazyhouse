@@ -11,6 +11,9 @@
    warn(): too much going on, a two-note alarm beep.
    overload(): craziness overload, the picture dying into a roar of static.
    win(): 6 AM, the static swelling up into a bright ringing chord.
+   dread(amount): a drone that's always there but silent; main.js turns
+   it up (0..1) while you're watching something coming at the cam, and
+   it gets louder, higher, rougher and throbs faster the closer it gets.
 
    Browsers only allow sound after a click or key press, so unlock()
    is called from START.
@@ -155,5 +158,36 @@ export function createSounds() {
     thump(t + 1.8, { from: 70, to: 35, gain: 0.7, decay: 0.6 });
   }
 
-  return { unlock, thunk, relay, scramble, warn, overload, win };
+  let drone = null;
+  function dread(amount) {
+    if (!ctx) return;
+    if (!drone) {
+      if (!amount) return;
+      // two detuned saws and a sub, through a lowpass that opens up, with hiss under it, all throbbing
+      const filter = ctx.createBiquadFilter(), throb = ctx.createGain(), level = ctx.createGain();
+      filter.type = 'lowpass'; filter.Q.value = 6; filter.frequency.value = 200;
+      level.gain.value = 0; throb.gain.value = 0.7;
+      const oscs = [[55, 'sawtooth'], [55 * 1.013, 'sawtooth'], [41, 'sine'], [110 * 1.5, 'square']].map(([f, type]) => {
+        const o = ctx.createOscillator(); o.type = type; o.frequency.value = f;
+        const g = ctx.createGain(); g.gain.value = type === 'square' ? 0.12 : 0.5;
+        o.connect(g).connect(filter); o.start();
+        return { o, f };
+      });
+      const hiss = ctx.createBufferSource(); hiss.buffer = noise; hiss.loop = true;
+      const hissGain = ctx.createGain(); hissGain.gain.value = 0.15;
+      hiss.connect(hissGain).connect(filter); hiss.start();
+      const lfo = ctx.createOscillator(), depth = ctx.createGain();
+      lfo.frequency.value = 2; depth.gain.value = 0.3;
+      lfo.connect(depth).connect(throb.gain); lfo.start();
+      filter.connect(throb).connect(level).connect(out);
+      drone = { filter, level, oscs, lfo };
+    }
+    const t = ctx.currentTime, a = Math.max(0, Math.min(1, amount));
+    drone.level.gain.setTargetAtTime(a * a * 0.7, t, a ? 0.15 : 0.05);
+    drone.filter.frequency.setTargetAtTime(180 + a * 2400, t, 0.2);
+    drone.lfo.frequency.setTargetAtTime(1.5 + a * 9, t, 0.3);
+    for (const { o, f } of drone.oscs) o.frequency.setTargetAtTime(f * (1 + a * 0.9), t, 0.3);
+  }
+
+  return { unlock, thunk, relay, scramble, warn, overload, win, dread };
 }

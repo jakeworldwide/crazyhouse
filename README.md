@@ -408,11 +408,14 @@ static that burns up to white, `CRAZINESS DEFEATED` comes up through it,
 and after a few seconds of glory you get `play again` or `main menu`.
 
 **When it happens.** A schedule is rolled when the shift starts
-(midnight to 6 AM, 5 real minutes an hour):
+(midnight to 6 AM, 4 real seconds a minute, so 4 minutes an hour and 24
+for the night), about 30 in all:
 
-- 12 to 2 AM: 2 or 3 in all
-- 2 to 4 AM: 3 or 4 an hour
-- 4 to 6 AM: 5 or 6 an hour
+- 12 to 2 AM: 4 or 5 in all
+- 2 to 4 AM: 5 or 6 an hour
+- 4 to 6 AM: 7 or 8 an hour
+
+There are 54 to pick from, 6 or 7 on every cam.
 
 Bigger stuff unlocks as the night goes on: up to intensity 2 before
 2 AM, 3 before 4 AM, then anything. The milder ones keep turning up the
@@ -429,8 +432,14 @@ night goes quiet (more crazinesses, more night).
 2. Something strange shows up, like a painting turning into a photo or
    an ad that doesn't belong
 3. Something really crazy: a person, a ghost, something big
-4. Super crazy, staring straight into the cam (counts double toward
-   overload)
+4. Super crazy: something coming straight at the cam (counts double
+   toward overload). There are 3 (front yard, foyer, master bedroom).
+   It starts somewhere in the room and lurches right down the cam's line
+   of sight for 20 seconds, getting bigger and bigger, until its face is
+   up against the lens. While you're on that cam a droning dread sound
+   comes up and gets louder and nastier the closer it gets. Report it in
+   time and it's gone; let it get there and you're dead (`it got too
+   close`).
 
 **Adding one.** Every craziness is an entry in `CRAZINESS` in
 `craziness-list.js`. Copy one, give it the next number (`craziness10`,
@@ -441,25 +450,34 @@ night goes quiet (more crazinesses, more night).
   and reporting any of them counts
 - `intensity`: 1 to 4
 - `observable`: 1 if it can happen while you're watching its cam, so you
-  catch it in the act (doors opening, furniture moving). Leave it out
-  for the usual: it waits till you look away
+  catch it in the act (doors opening, furniture moving, lights going
+  out). Leave it out for the usual: it waits till you look away
+- `approach`: seconds, for something coming at the cam (the intensity
+  4s); if it isn't reported by then, you're dead
 - `at`: roughly where it is, in blueprint pixels, so lamps nearby redraw
   their shadows
 - `note`: what's going on, for whoever's reading the code
 - `start(ctx)` makes it happen, `stop(ctx)` puts everything back exactly
-  how it was
+  how it was, and `frame(ctx, age, p)` (if there is one) runs every
+  frame while it's going
 
 `ctx` has what you need to mess with the house: `find(name)` gets a
 named piece of furniture, `add` / `remove` put new things in the scene,
 `paintings.repaint(name, draw)` / `paintings.restore(name)` swap a
 painting's picture, `cam(name)` is a cam's position, plus `THREE`, `X`,
-`Z`, `FLOOR` and `walkHeight`. There are helpers at the top: `figure()` for a tall dark someone with
-glowing eyes, `standing()` for one that just stands there, 
-`opens('fridge-door')` for anything that opens (doors, the fridge, the
-dryer) swinging open by itself, and `moves(seconds, pose)` for sliding
-or turning something to a new spot smoothly, so if you're watching you
-see it go instead of it just jumping there. The placeholders (`craziness1` to
-`craziness14`) show each kind.
+`Z`, `FLOOR` and `walkHeight`. There are helpers at the top for most of what you'd want:
+
+- moving what's there: `shifts('fiddle-fig', { dx, dz, angle })` slides
+  or turns something smoothly (`moves()` for anything fancier),
+  `opens('fridge-door')` swings anything that opens, `opensAll()` does a
+  whole set (every cabinet), `lightsOut('kitchen')` kills a light circuit,
+  `hides()` makes something vanish, `repaints()` draws over a painting
+- things turning up: `standsAt()` puts a `figure()` somewhere looking at a
+  cam (pale `face` for the ones that need to show up in the dark),
+  `ghostAt()`, `eyesAt()` for eyes shining out of the dark, `decal()`
+  for writing or handprints on a wall, `bigHead()`, and `appears()` for
+  anything you build yourself
+- `approach(cam, [px, py])` for an intensity 4
 
 Make sure it's plainly in its own room from its cam. Something standing
 in the laundry but lined up with the bathroom door reads as the
