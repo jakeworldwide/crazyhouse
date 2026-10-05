@@ -12,7 +12,7 @@ import { createGhoul } from './ghoul.js?v=12';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
-import { createAnalogPass } from './analog.js?v=35';
+import { createAnalogPass } from './analog.js?v=36';
 import { createOsd } from './osd.js?v=4';
 import { createSounds } from './sound.js?v=2';
 
@@ -34,6 +34,7 @@ const debug = { composite: true, free: false, fov: null, tick: null, onCam: null
 let camIndex = 0;
 export function setComposite(enabled){debug.composite=Boolean(enabled);}
 let renderer, scene, camera, ghoul, ghost, lamps, emp, ticks, ir, tv, analog, pvs, osd, osdTex;
+let signalOK = true, signalTries = 0;
 const EXPOSURE = 0.66;         // overall brightness of the picture
 const RESOLUTION = 1;          // pixel ratio (window.devicePixelRatio for full retina sharpness, at 4x the cost)
 const buffer = new THREE.Vector2();
@@ -172,6 +173,11 @@ function initGL() {
   osdTex.generateMipmaps = false;
   osdTex.minFilter = THREE.LinearFilter;
   analog.controls.osd = osdTex;
+  // the true signal needs the device to draw and read back 32-bit float pictures; without that
+  // (some phones) the feed is the clean picture, lens, text and all, with a simpler static
+  signalOK = renderer.extensions.has('EXT_color_buffer_float') && !new URLSearchParams(location.search).has('nosignal');   // (?nosignal tries it without)
+  if (!signalOK) debug.composite = false;
+  if (new URLSearchParams(location.search).has('diag')) showDiag();
   const testInterference = Number(new URLSearchParams(location.search).get('interference'));
   if (Number.isFinite(testInterference)) analog.controls.interference = Math.max(0, Math.min(1, testInterference));
   const recordingURL=new URLSearchParams(location.search).get('signal');
@@ -292,7 +298,7 @@ function loop(now) {
     if (osd.update('title', now)) osdTex.needsUpdate = true;
     titleTwitch(now);
     analog.snow(now / 1000);
-    analog.render(now / 1000);
+    present(now);
     return;
   }
   glitch = Math.max(0, glitch - dt);
@@ -333,9 +339,39 @@ function loop(now) {
   renderer.render(scene, camera);
   // blur scales with the picture, so it looks the same at any size
   if (ghoul.enabled && ghoulInView()) ghost.render(scene, camera, ghoul.presence, ghoul.blur * height * 0.022, target);
-  if (debug.composite) analog.render(now / 1000);
-  else analog.presentClean();
+  present(now);
 }
+
+/* The picture goes out through the signal, or straight to the screen when
+   the signal's off (debug) or the device can't run it. If the signal errors,
+   or hasn't shown a single frame after a few seconds, it's switched off for
+   good and the clean picture takes over, so nobody's left on a black screen. */
+function present(now) {
+  if (signalOK && debug.composite) {
+    analog.render(now / 1000);
+    signalTries++;
+    if (analog.stats.error || (signalTries > 240 && analog.stats.frames === 0)) {
+      signalOK = false; debug.composite = false;
+      reportProblem('signal off: ' + (analog.stats.error || 'no frames decoded'));
+    }
+  } else analog.presentClean();
+}
+
+// a problem worth knowing about shows in the corner with ?diag (and goes to the console)
+const diagBox = $('diag');
+function reportProblem(text) {
+  console.warn('crazyhouse:', text);
+  if (!diagBox.hidden) diagBox.textContent += '\n' + text;
+}
+function showDiag() {
+  const gl = renderer.getContext(), ext = n => renderer.extensions.has(n) ? 'yes' : 'NO';
+  diagBox.hidden = false;
+  diagBox.textContent = [`webgl2 ${renderer.capabilities.isWebGL2 ? 'yes' : 'NO'}  samples ${gl.getParameter(gl.MAX_SAMPLES)}`,
+    `float draw ${ext('EXT_color_buffer_float')}  half draw ${ext('EXT_color_buffer_half_float')}  float smooth ${ext('OES_texture_float_linear')}`,
+    `signal ${signalOK ? 'on' : 'off (clean picture)'}`].join('\n');
+}
+addEventListener('error', e => reportProblem(`${e.message} (${(e.filename || '').split('/').pop()}:${e.lineno})`));
+addEventListener('unhandledrejection', e => reportProblem(String(e.reason && e.reason.message || e.reason)));
 
 /* ─── cams ──────────────────────────────────── */
 

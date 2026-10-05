@@ -363,6 +363,14 @@ ghoul1's pupils glow. Strength is `IR_STRENGTH` and `NV_GAIN` in
   wrong in. There's nothing crazy yet, so every report comes back "no
   craziness found"; `checkAnomaly(cam)` in `main.js` is where it'll be
   looked up.
+- **Phones**: the receiver blends its decoded samples itself (iPhones
+  can't smooth 32-bit float pictures; sampling one smoothed just gives
+  black, which is what made the iPhone screen go dark). A device that
+  can't draw 32-bit float pictures at all gets the clean picture
+  instead (same lens, text and night vision, a plainer static), and so
+  does any device where the signal errors or decodes nothing for a few
+  seconds. `?diag` shows what the device can do and any problems, in the
+  corner; `?nosignal` tries the clean picture on purpose.
 - **Esc** opens the options menu (in the feed like the rest of its text):
   resume, or quit to the title.
 - **The EMP** has no button for now; B still fires it.

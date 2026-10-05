@@ -17,7 +17,10 @@ export function gameClipOrigin(seconds,epoch){
   return clock.time-(clock.frame%2)*GAME_SIGNAL.samplesPerLine*GAME_SIGNAL.linesPerFrame/GAME_SIGNAL.sampleRate;
 }
 export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receiverParameters={}}={}) {
-  const picture = new THREE.WebGLRenderTarget(720, H, {type: THREE.HalfFloatType, samples: 4});
+  // the scene is drawn in half floats where the device can draw into them (bright lamps keep their detail),
+  // in plain bytes where it can't
+  const halfOK = renderer.extensions.has('EXT_color_buffer_float') || renderer.extensions.has('EXT_color_buffer_half_float');
+  const picture = new THREE.WebGLRenderTarget(720, H, {type: halfOK ? THREE.HalfFloatType : THREE.UnsignedByteType, samples: 4});
   const source = new THREE.WebGLRenderTarget(720, H, {type:THREE.HalfFloatType, depthBuffer:false});
   source.texture.minFilter=source.texture.magFilter=THREE.NearestFilter;
   const filtered = new THREE.WebGLRenderTarget(720,H,{type:THREE.HalfFloatType,depthBuffer:false,minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter});
@@ -26,7 +29,9 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
   const timingTexture=new THREE.DataTexture(new Float32Array(480*4),1,480,THREE.RGBAFormat,THREE.FloatType);
   timingTexture.minFilter=timingTexture.magFilter=THREE.NearestFilter;
   const receivedTexture=new THREE.DataTexture(new Float32Array(W*SIGNAL_H),W,SIGNAL_H,THREE.RedFormat,THREE.FloatType);
-  receivedTexture.minFilter=receivedTexture.magFilter=THREE.LinearFilter;
+  // nearest only: iPhones can't smooth 32-bit float textures (sampling one with smoothing just gives
+  // black), so the decoder blends neighbouring samples itself (waveLerp)
+  receivedTexture.minFilter=receivedTexture.magFilter=THREE.NearestFilter;
   const decoded=new THREE.WebGLRenderTarget(720,480,{depthBuffer:false});
   const readbackPool=Array.from({length:2},()=>new Float32Array(PACKED_W*SIGNAL_H*4));
   let receiverQueue=Promise.resolve();
@@ -156,18 +161,19 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
       gl_FragColor=vec4(voltage(x,line),voltage(x+1.,line),voltage(x+2.,line),voltage(x+3.,line));
     }`);
 
-  uniforms.received={value:receivedTexture};
+  uniforms.received={value:receivedTexture};uniforms.waveLerp={value:1};
   const decode = material(`
-    uniform sampler2D received,timing; uniform float comb,colorKiller,receiverSetup,notchSpacing;uniform vec2 chromaWeights[33]; varying vec2 vUv;
+    uniform sampler2D received,timing; uniform float comb,colorKiller,receiverSetup,notchSpacing,waveLerp;uniform vec2 chromaWeights[33]; varying vec2 vUv;
     float wave(float index){
       index=clamp(index,0.,910.*813.-1.);
       float base=floor(index),fraction=fract(index);
       float x=mod(base,910.),row=floor(base/910.);
-      if(x<909.)return texture2D(received,vec2((x+fraction+.5)/910.,(row+.5)/813.)).r;
-      // Hardware filtering cannot cross a packed scanline boundary.
+      float r=(row+.5)/813.;
+      if(x<909.)return mix(texture2D(received,vec2((x+.5)/910.,r)).r,texture2D(received,vec2((x+1.5)/910.,r)).r,fraction*waveLerp);
+      // the last sample on a line blends with the first of the next
       float next=min(base+1.,910.*813.-1.);
       return mix(texture2D(received,vec2((x+.5)/910.,(row+.5)/813.)).r,
-        texture2D(received,vec2((mod(next,910.)+.5)/910.,(floor(next/910.)+.5)/813.)).r,fraction);
+        texture2D(received,vec2((mod(next,910.)+.5)/910.,(floor(next/910.)+.5)/813.)).r,fraction*waveLerp);
     }
     void main(){
       float row=floor((1.-vUv.y)*480.);
@@ -355,13 +361,12 @@ export function createAnalogPass(renderer,{videoSource=null,onFrame=null,receive
     if(decoded.width!==outputWidth)decoded.setSize(outputWidth,H);
     const sourceFilter=controls.sourceLinear?THREE.LinearFilter:THREE.NearestFilter;
     if(filtered.texture.magFilter!==sourceFilter){filtered.dispose();filtered.texture.minFilter=filtered.texture.magFilter=sourceFilter;}
-    const waveFilter=controls.waveLinear?THREE.LinearFilter:THREE.NearestFilter;
-    if(receivedTexture.magFilter!==waveFilter){receivedTexture.minFilter=receivedTexture.magFilter=waveFilter;receivedTexture.needsUpdate=true;}
+    uniforms.waveLerp.value=controls.waveLinear?1:0;
     const outputFilter=controls.outputLinear?THREE.LinearFilter:THREE.NearestFilter;
     if(decoded.texture.magFilter!==outputFilter){decoded.dispose();decoded.texture.minFilter=decoded.texture.magFilter=outputFilter;}
   }
   function resetParameters(){Object.assign(controls,defaults,{receiverOverrides:{},noise:0,interference:0,testGain:1,automaticHum:false,automaticHumGain:.15});setSize(displaySize.width,displaySize.height);}
   function getReceiverParameters(){return {gain:1,bias:0,headroom:0,noise:0,slew:0,bandwidth:0,comb:false,clamp:true,colorKiller:true,autoSlice:true,threshold:-.12,tracking:.8,colorTracking:.5,holdPPM:0,setupIRE:7.5,...receiverDefaults,...receiverParameters,...(clip?.manifest.receiverParameters??{}),...controls.receiverOverrides};}
   setSize(displaySize.width,displaySize.height);
-  return {picture, controls, render, presentClean, snow, heldSignals, setClip, setSize, resetParameters, getReceiverParameters, defaults, stats, get clip(){return clip;}};
+  return {picture, halfOK, controls, render, presentClean, snow, heldSignals, setClip, setSize, resetParameters, getReceiverParameters, defaults, stats, get clip(){return clip;}};
 }

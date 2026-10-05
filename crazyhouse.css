@@ -192,6 +192,22 @@ canvas { pointer-events: none; }
 .cut .cut-flash { animation: cut 0.22s steps(3, jump-none); }
 @keyframes cut { from { opacity: 1; } to { opacity: 0; } }
 
+/* ─── ?diag: what the device can do ─────────── */
+.diag {
+  position: absolute;
+  left: 1cqw;
+  top: 1cqw;
+  z-index: 20;
+  max-width: 98%;
+  white-space: pre-wrap;
+  font: 11px/1.35 ui-monospace, Menlo, monospace;
+  color: #0f0;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 4px 6px;
+  pointer-events: none;
+}
+.diag[hidden] { display: none; }
+
 /* ─── no WebGL ──────────────────────────────── */
 .no-gl-msg {
   display: none;
