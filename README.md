@@ -344,7 +344,7 @@ ghoul1's pupils glow. Strength is `IR_STRENGTH` and `NV_GAIN` in
   composite bypassed (debug) it's a quick drop to black instead.
 - **Lens**: the cams have a fisheye (`FISHEYE` in `main.js`, 0 is flat),
   applied to the picture before it's encoded, like a real lens. First
-  person and the free cam stay flat.
+  person stays flat; the free cam keeps the lens, so its view matches the cams.
 - **The feed's text** (`osd.js`): the cam number and name, REC, the
   clock, NV, the craziness menu, the big left and right arrows and the
   cam dots are laid over the picture inside the camera, bent by the
