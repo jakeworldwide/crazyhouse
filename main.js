@@ -7,7 +7,7 @@ import * as THREE from './vendor/three-r186/three.module.js';
 import { buildWorld, ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=45';
 import { buildPVS } from './pvs.js?v=2';
 import { createEmp } from './emp.js?v=7';
-import { CAMS, camAt } from './cams.js?v=10';
+import { CAMS, camAt } from './cams.js?v=11';
 import { createGhoul } from './ghoul.js?v=13';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
