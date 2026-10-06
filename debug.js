@@ -49,7 +49,7 @@ export function createDebug(api) {
     <button data-act="open">open it all</button>
     <details class="dbg-lights dbg-crazy"><summary>craziness</summary>
       <div class="dbg-help">each one only happens once a shift (try again or a new shift resets them)</div>
-      <div class="dbg-row"><select data-in="crazy" aria-label="Craziness to spawn"></select><button data-act="crazy-go">spawn</button></div>
+      <div class="dbg-crazy-rooms"></div>
       <div class="dbg-row"><button data-act="crazy-spawn">spawn random</button><button data-act="crazy-hour">+1 hour</button><button data-act="crazy-clear">clear all</button></div>
       <div class="dbg-row"><button data-act="crazy-warn">warning</button><button data-act="crazy-scramble">THAT WAS CRAZY</button></div>
       <div class="dbg-row"><button data-act="crazy-win">win (6 AM)</button><button data-act="crazy-lose">lose (overload)</button></div>
@@ -363,21 +363,31 @@ export function createDebug(api) {
   const showSwitches = () => swBox.querySelectorAll('button').forEach(b => b.classList.toggle('on', sw.isOn(b.dataset.circuit)));
 
   /* ─── craziness ─── */
-  const crazy = api.craziness, crazyPick = $('[data-in="crazy"]');
+  // a dropdown per room (a craziness seen from two cams is in both), each with its own spawn button
+  const crazy = api.craziness, rooms = $('.dbg-crazy-rooms'), picks = [];
   const byNumber = [...crazy.list].sort((a, b) => parseInt(a.name.slice(9)) - parseInt(b.name.slice(9)));
-  for (const d of byNumber) {
-    const o = document.createElement('option');
-    o.value = d.name;
-    o.title = d.note;
-    crazyPick.appendChild(o);
+  for (const cam of CAMS) {
+    const row = document.createElement('div'), label = document.createElement('span'), pick = document.createElement('select'), go = document.createElement('button');
+    row.className = 'dbg-row dbg-room';
+    label.textContent = cam.name;
+    pick.setAttribute('aria-label', `Craziness to spawn in the ${cam.name}`);
+    go.textContent = 'spawn';
+    for (const d of byNumber.filter(d => [].concat(d.cam).includes(cam.name))) {
+      const o = document.createElement('option');
+      o.value = d.name;
+      o.title = d.note;
+      pick.appendChild(o);
+    }
+    go.addEventListener('click', () => {
+      crazy.start(pick.value, api.shiftSeconds());
+      const next = [...pick.options].find(o => !crazy.isUsed(o.value));           // on to the next one that hasn't happened yet
+      if (next) pick.value = next.value;
+      go.blur();
+    });
+    row.append(label, pick, go);
+    rooms.appendChild(row);
+    picks.push({ pick, go });
   }
-  btn('crazy-go').addEventListener('click', e => {
-    crazy.start(crazyPick.value, api.shiftSeconds());
-    // on to the next one that hasn't happened yet
-    const next = [...crazyPick.options].find(o => !crazy.isUsed(o.value));
-    if (next) crazyPick.value = next.value;
-    e.currentTarget.blur();
-  });
   btn('crazy-spawn').addEventListener('click', e => { crazy.spawn(api.shiftSeconds()); e.currentTarget.blur(); });
   btn('crazy-hour').addEventListener('click', e => { api.skipHour(); e.currentTarget.blur(); });
   btn('crazy-clear').addEventListener('click', e => { for (const n of crazy.active()) crazy.stop(n); e.currentTarget.blur(); });
@@ -390,15 +400,17 @@ export function createDebug(api) {
     e.currentTarget.textContent = `can't die: ${debug.noDeath ? 'on' : 'off'}`;
     e.currentTarget.blur();
   });
-  // each option says where it is and how crazy, and whether it's going now or already done
+  // each option says which one, how crazy and what it is, and whether it's going now or already done
   const showCrazy = () => {
-    for (const o of crazyPick.options) {
-      const d = crazy.list.find(c => c.name === o.value), going = crazy.isActive(d.name), used = crazy.isUsed(d.name);
-      const text = `${d.name} · ${[].concat(d.cam).join('/')} · ${d.intensity}${going ? ' (going)' : used ? ' (done)' : ''}`;
-      if (o.textContent !== text) o.textContent = text;
-      o.disabled = used;
+    for (const { pick, go } of picks) {
+      for (const o of pick.options) {
+        const d = crazy.list.find(c => c.name === o.value), going = crazy.isActive(d.name), used = crazy.isUsed(d.name);
+        const text = `${d.name.slice(9)} (${d.intensity})${going ? ' going' : used ? ' done' : ''} · ${d.note}`;
+        if (o.textContent !== text) o.textContent = text;
+        o.disabled = used;
+      }
+      go.disabled = !pick.value || crazy.isUsed(pick.value);
     }
-    btn('crazy-go').disabled = crazy.isUsed(crazyPick.value);
   };
 
   /* ─── first person ─── */

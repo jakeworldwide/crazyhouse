@@ -5,7 +5,7 @@
 
 import * as THREE from './vendor/three-r186/three.module.js';
 import { buildWorld, ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=45';
-import { buildPVS } from './pvs.js?v=1';
+import { buildPVS } from './pvs.js?v=2';
 import { createEmp } from './emp.js?v=7';
 import { CAMS, camAt } from './cams.js?v=10';
 import { createGhoul } from './ghoul.js?v=13';
@@ -288,7 +288,7 @@ function setup() {
       isNight: () => night, camIndex: () => camIndex
     };
     window.crazyhouse = api;
-    import('./debug.js?v=26').then(m => m.createDebug(api));
+    import('./debug.js?v=27').then(m => m.createDebug(api));
   }
 
   return true;

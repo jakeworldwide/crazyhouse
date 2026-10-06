@@ -536,5 +536,7 @@ canvas { pointer-events: none; }
 .debug-panel .dbg-crazy > :not(summary) { margin-top: 5px; }
 .debug-panel .dbg-crazy select { flex: 1; min-width: 0; font-family: inherit; font-size: 11px; color: #fff; background: #111; border: 1px solid rgba(255, 255, 255, 0.5); padding: 3px 2px; }
 .debug-panel .dbg-crazy .dbg-row button { font-size: 11px; padding: 3px 4px; }
-.debug-panel .dbg-crazy [data-act="crazy-go"] { flex: 0 0 auto; }
+.debug-panel .dbg-crazy-rooms { display: flex; flex-direction: column; gap: 4px; }
+.debug-panel .dbg-room span { flex: 0 0 66px; font-size: 11px; color: #ccc; align-self: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.debug-panel .dbg-crazy .dbg-room button { flex: 0 0 auto; }
 .debug-panel button:disabled { opacity: 0.35; cursor: default; }

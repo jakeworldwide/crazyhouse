@@ -6,7 +6,11 @@
    every cam we draw the house once in "ID colours" (every named thing
    in its own flat colour, every door open so nothing hides behind one)
    into a small hidden picture, read back which colours showed up, and
-   remember them. From then on, things a cam can't see move to
+   remember them. It looks three times, every door shut, every door open
+   and every door as it starts, and keeps anything any of them sees (a
+   door swung open can hide behind its own frame, so with only the open
+   look the front door went missing from the yard when it was shut).
+   From then on, things a cam can't see move to
    CULL_LAYER: that cam skips them, but lights still see them, so their
    shadows stay put.
 
@@ -56,29 +60,30 @@ export function buildPVS(renderer, scene, roots, cams, cullLayer) {
   });
   const doors = [];
   scene.traverse(o => { if (o.userData.setOpen) doors.push([o, o.userData.open]); });
-  doors.forEach(([o]) => o.userData.setOpen(1));
   const fog = scene.fog, auto = renderer.shadowMap.autoUpdate, need = renderer.shadowMap.needsUpdate;
   scene.fog = null;
   renderer.shadowMap.autoUpdate = renderer.shadowMap.needsUpdate = false;
 
   const W = 480, H = 270, target = new THREE.WebGLRenderTarget(W, H), pixels = new Uint8Array(W * H * 4);
   const cam = new THREE.PerspectiveCamera(60, 16 / 9, 0.1, 600);
-  const seen = cams.map(c => {
-    cam.position.set(...c.pos);
-    cam.fov = c.fov;
-    cam.updateProjectionMatrix();
-    cam.lookAt(...c.look);
-    cam.updateMatrixWorld();
-    renderer.setRenderTarget(target);
-    renderer.render(scene, cam);
-    renderer.readRenderTargetPixels(target, 0, 0, W, H, pixels);
-    const set = new Set();
-    for (let p = 0; p < pixels.length; p += 4) {
-      const id = pixels[p] + (pixels[p + 1] << 8);
-      if (id) set.add(id - 1);
-    }
-    return set;
-  });
+  const seen = cams.map(() => new Set());
+  for (const pose of [0, 1, null]) {                                       // doors shut, open, as they start
+    doors.forEach(([o, open]) => o.userData.setOpen(pose ?? open));
+    cams.forEach((c, i) => {
+      cam.position.set(...c.pos);
+      cam.fov = c.fov;
+      cam.updateProjectionMatrix();
+      cam.lookAt(...c.look);
+      cam.updateMatrixWorld();
+      renderer.setRenderTarget(target);
+      renderer.render(scene, cam);
+      renderer.readRenderTargetPixels(target, 0, 0, W, H, pixels);
+      for (let p = 0; p < pixels.length; p += 4) {
+        const id = pixels[p] + (pixels[p + 1] << 8);
+        if (id) seen[i].add(id - 1);
+      }
+    });
+  }
   renderer.setRenderTarget(null);
   target.dispose();
   mats.forEach(m => m.dispose());
