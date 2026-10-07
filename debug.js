@@ -415,7 +415,7 @@ export function createDebug(api) {
 
   /* ─── first person ─── */
   let fp = null;
-  import('./firstperson.js?v=10').then(m => { fp = api.fp = m.createFirstPerson({ scene, camera, frame }); });
+  import('./firstperson.js?v=12').then(m => { fp = api.fp = m.createFirstPerson({ scene, camera, frame }); });
   const leaveFP = () => {
     if (!debug.fp) return;
     fp.exit();

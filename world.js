@@ -2898,7 +2898,7 @@ function driveway() {
    at about -17), y is up from the ground under it, z is across (+z is
    the driver's side). VAN.x is where its back end is. */
 export const VAN = { x: -88, z: 20, floor: 2.2, tilt: Math.atan(0.075) };
-const VAN_ROOF = 6.9, VAN_INSIDE = 10.2;            // the roof; how far forward from the back doors you can walk
+const VAN_ROOF = 6.9, VAN_EAVE = 6.3, VAN_INSIDE = 10.2;   // the roof, where its rounded edges start; how far forward from the back doors you can walk
 export const VAN_SEAT = (() => {
   const lx = -7.6, ly = VAN.floor, c = Math.cos(VAN.tilt), s = Math.sin(VAN.tilt);
   return { x: VAN.x + lx * c - ly * s, z: VAN.z + 0.15, yaw: Math.PI };      // facing +z: the monitor
@@ -2975,10 +2975,8 @@ function van() {
   const profile = () => {
     const s = new THREE.Shape();
     s.moveTo(0, 1.3);
-    s.lineTo(0, 6.7);
-    s.quadraticCurveTo(0, VAN_ROOF, -0.2, VAN_ROOF);
-    s.lineTo(-11.6, VAN_ROOF);
-    s.quadraticCurveTo(-11.95, VAN_ROOF, -12.02, 6.72);
+    s.lineTo(0, VAN_EAVE);
+    s.lineTo(-12.32, VAN_EAVE);                                                   // the rounded roof sits on top (roofSection)
     s.lineTo(-13.55, 4.6);
     s.quadraticCurveTo(-13.62, 4.53, -13.75, 4.52);
     s.lineTo(-16.15, 4.05);
@@ -2994,9 +2992,33 @@ function van() {
   };
   const windowHole = () => {
     const w = new THREE.Path();
-    w.moveTo(-13.14, 4.75); w.lineTo(-10.5, 4.75); w.lineTo(-10.5, 6.42); w.lineTo(-11.9, 6.42); w.lineTo(-13.14, 4.75);
+    w.moveTo(-13.14, 4.75); w.lineTo(-10.5, 4.75); w.lineTo(-10.5, 6.1); w.lineTo(-12.17, 6.1); w.lineTo(-13.14, 4.75);
     return w;
   };
+  /* The roof's cross-section: the sides curve over into it instead of
+     meeting it at a square edge. inner: a shell (the main roof, hollow
+     underneath); otherwise solid down to bottom (the caps over the
+     windscreen and the back doors). along() runs it front to back. */
+  const roofSection = (bottom, inner) => {
+    const r = new THREE.Shape(), top = VAN_ROOF, t = 0.08;
+    r.moveTo(-3.3, bottom); r.lineTo(-3.3, VAN_EAVE + 0.05);
+    r.quadraticCurveTo(-3.3, top, -2.6, top); r.lineTo(2.6, top); r.quadraticCurveTo(3.3, top, 3.3, VAN_EAVE + 0.05);
+    r.lineTo(3.3, bottom);
+    if (inner) {
+      r.lineTo(3.3 - t, bottom); r.lineTo(3.3 - t, VAN_EAVE + 0.05);
+      r.quadraticCurveTo(3.3 - t, top - t, 2.6, top - t); r.lineTo(-2.6, top - t); r.quadraticCurveTo(-3.3 + t, top - t, -3.3 + t, VAN_EAVE + 0.05);
+      r.lineTo(-3.3 + t, bottom);
+    }
+    r.closePath();
+    return r;
+  };
+  const along = (shape, x0, x1, mat) => {
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: x1 - x0, bevelEnabled: false, curveSegments: 6 });
+    geo.rotateY(Math.PI / 2);
+    geo.translate(x0, 0, 0);
+    return tint(solid(geo), mat);
+  };
+
   const sides = [-1, 1].map(s => {
     const geo = new THREE.ExtrudeGeometry(profile(), { depth: 0.1, bevelEnabled: false });
     geo.translate(0, 0, s * 3.25 - 0.05);
@@ -3023,7 +3045,7 @@ function van() {
       bar([-13.55, 4.6, s * 3.13], [-12.02, 6.72, s * 3.13], 0.24, 0.24, paint)
     ]),
     // the back: corner pillars round the doors, the sill under them
-    ...[-1, 1].map(s => bx(0.12, 5.3, 0.35, -0.06, 3.95, s * 3.125, paint)),
+    ...[-1, 1].map(s => bx(0.12, 5.0, 0.35, -0.06, 3.8, s * 3.125, paint)),
     bx(0.12, 0.35, 5.9, -0.06, 1.475, 0, paint),
     // the dark underneath: frame, axles, the works
     bx(15.2, 0.5, 4.6, -8.4, 1.05, 0, trim)
@@ -3075,7 +3097,7 @@ function van() {
 
   // the sides: mirrors, handles, marker lights, the fuel door, and the company's decal
   const sideBits = [
-    ...[-1, 1].map(s => picture(7.2, 3.6, igorLogo, -5.4, 4.45, s * 3.33, s > 0 ? 0 : Math.PI, true)),
+    ...[-1, 1].map(s => picture(8.4, 3.5, vanLogo, -5.6, 4.4, s * 3.33, s > 0 ? 0 : Math.PI, true)),
     ...[-1, 1].flatMap(s => [
       bar([-13.1, 4.95, s * 3.3], [-13.0, 5.05, s * 3.78], 0.08, 0.08, trim),
       bx(0.14, 0.9, 0.5, -12.95, 5.25, s * 3.98, trim),
@@ -3089,18 +3111,18 @@ function van() {
   // overhead (you walk under all this, so it never blocks you): the roof, the bows holding it up,
   // the third brake light, the work light clipped up over the desk, the mirror and sun visors up front
   const overhead = named('van-overhead',
-    bx(11.6, 0.08, 6.44, -5.95, 6.86, 0, paint),
-    bx(0.5, 0.2, 6.44, -11.83, 6.79, 0, paint),
-    bx(0.12, 0.33, 6.44, -0.06, 6.715, 0, paint),
-    bx(0.95, 0.12, 0.95, -2.6, 6.96, 0, surface(0xcfcfca, 0.6)),
-    bx(0.04, 0.12, 0.9, 0.02, 6.74, 0, red),
-    ...[-1.3, -3.8, -6.9, -9.2].map(x => bx(0.22, 0.1, 6.36, x, 6.62, 0, paint)),
+    along(roofSection(VAN_EAVE, true), -11.75, -0.12, paint),
+    along(roofSection(6.6, false), -12.08, -11.75, paint),                     // over the windscreen
+    along(roofSection(VAN_EAVE, false), -0.12, 0, paint),                      // over the back doors
+    bx(0.95, 0.12, 0.95, -2.6, 6.94, 0, surface(0xcfcfca, 0.6)),
+    bx(0.04, 0.12, 0.9, 0.02, 6.55, 0, red),
+    ...[-1.3, -3.8, -6.9, -9.2].map(x => bx(0.22, 0.1, 5.6, x, 6.62, 0, paint)),
     say("A clip-on work light, running off the battery. It's the only light you've got out here.",
       tint(solid(new THREE.CylinderGeometry(0.07, 0.2, 0.26, 12, 1, true), [-9.2, 6.15, 2.85], [0.5, 0, -0.35]), surface(0x2a2c2e, 0.5, THREE.DoubleSide)),
       glowing(new THREE.MeshBasicMaterial({ color: 0xfff1d8 }), new THREE.CircleGeometry(0.17, 12), -9.17, 6.03, 2.8, [-Math.PI / 2 + 0.5, 0, 0]),
       tint(solid(new THREE.BoxGeometry(0.08, 0.3, 0.08), [-9.2, 6.35, 3.05]), trim)),
     bx(0.08, 0.28, 0.75, -12.2, 6.42, 0, trim),
-    ...[-1, 1].map(s => bx(0.55, 0.05, 1.35, -12.0, 6.6, s * 1.55, surface(0x8a7f6c, 0.9)))
+    ...[-1, 1].map(s => bx(0.55, 0.05, 1.35, -12.0, 6.5, s * 1.55, surface(0x8a7f6c, 0.9)))
   );
   overhead.userData.passable = true;
 
@@ -3110,7 +3132,7 @@ function van() {
     bx(2.63, 0.12, 6.36, -1.315, 2.14, 0, plywood),
     bx(2.84, 0.12, 4.4, -4.05, 2.14, 0, plywood),
     bx(4.93, 0.12, 6.36, -7.935, 2.14, 0, plywood),
-    ...[-1.3, -6.9, -9.2].flatMap(x => [-1, 1].map(s => bx(0.22, 4.3, 0.12, x, 4.35, s * 3.14, paint))),
+    ...[-1.3, -6.9, -9.2].flatMap(x => [-1, 1].map(s => bx(0.22, 4.05, 0.12, x, 4.225, s * 3.14, paint))),
     // the cab: floor mat, the engine cover between the seats, the dash, the wheel, two seats, door trims
     bx(3.0, 0.1, 6.36, -11.95, 1.95, 0, trim),
     bx(2.3, 1.45, 1.1, -12.25, 2.72, 0, dash),
@@ -3192,9 +3214,9 @@ function van() {
   const rearDoor = (s, name) => {
     const w = 2.94, along = z => -s * z;                                          // from the hinge (0) toward the middle
     const parts = [
-      bx(0.1, 4.9, w, -0.05, 4.1, along(w / 2), paint),
-      ...[2.6, 5.6].map(y => bx(0.06, 0.22, 0.12, 0.02, y, along(0.05), MAT.chrome)),
-      bx(0.04, 4.6, 0.04, -0.12, 4.1, along(w - 0.3), trim)                      // inside: the latch rod
+      bx(0.1, 4.65, w, -0.05, 3.975, along(w / 2), paint),
+      ...[2.6, 5.4].map(y => bx(0.06, 0.22, 0.12, 0.02, y, along(0.05), MAT.chrome)),
+      bx(0.04, 4.4, 0.04, -0.12, 3.975, along(w - 0.3), trim)                    // inside: the latch rod
     ];
     if (s < 0) parts.push(                                                        // the kerb-side door: handle, plate, oval
       bx(0.07, 0.12, 0.38, 0.03, 3.95, along(w - 0.35), trim),
@@ -3239,84 +3261,76 @@ function badge(g, w, h) {
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.strokeStyle = '#b9bcbf'; g.lineWidth = h * 0.08; g.strokeText('E-350', w / 2, h * 0.55); g.fillText('E-350', w / 2, h * 0.55);
 }
-/* The decal on the van's sides: IGOR CRAZY CONTROL in fat rounded black
-   letters (an old pest control van's logo), with Igor leaping across it:
-   a little dark brindle dog, tan legs and face, big upright ears, curly
-   tail, mid-pounce, airbrushed like 70s van art. */
-function igorLogo(g, w, h) {
-  // the letters: filled, then traced round thick with round joins, which fattens and rounds them
-  const size = h * 0.26, x0 = w * 0.04;
-  g.fillStyle = g.strokeStyle = '#0d0d0d';
-  g.lineJoin = 'round'; g.lineWidth = size * 0.055;
-  g.font = `bold ${size}px "Arial Rounded MT Bold", "Helvetica Rounded", "Arial Black", sans-serif`;
-  g.textBaseline = 'alphabetic';
-  [['IGOR', 0.3], ['CRAZY', 0.6], ['CONTROL', 0.9]].forEach(([word, y]) => {
-    g.save(); g.translate(x0, h * y); g.scale(1, 1.08);
-    g.strokeText(word, 0, 0); g.fillText(word, 0, 0);
+/* The decal on the van's sides, a proper work-van job: a round badge with
+   Igor (the company dog) in it, IGOR'S CRAZY CONTROL in heavy italic
+   letters, what they do, the phone number, and a red and navy swoosh
+   along the bottom with the small print on it. */
+function vanLogo(g, w, h) {
+  const RED = '#c4161c', NAVY = '#14285a', heavy = s => `italic 900 ${s}px "Arial Black", Impact, sans-serif`;
+  // the swoosh: navy under red, sweeping up toward the back
+  const band = (y0, y1, rise, c) => {
+    g.fillStyle = c; g.beginPath();
+    g.moveTo(0, h * y0); g.bezierCurveTo(w * 0.35, h * y0, w * 0.6, h * (y0 - rise), w, h * (y0 - rise * 1.6));
+    g.lineTo(w, h * (y1 - rise * 1.6)); g.bezierCurveTo(w * 0.6, h * (y1 - rise), w * 0.35, h * y1, 0, h * y1); g.closePath(); g.fill();
+  };
+  band(0.84, 0.99, 0.045, NAVY);
+  band(0.79, 0.85, 0.045, RED);
+  g.fillStyle = '#fff'; g.font = `bold ${h * 0.05}px Arial, sans-serif`; g.textBaseline = 'middle'; g.textAlign = 'center';
+  g.fillText('RESIDENTIAL  •  COMMERCIAL  •  LICENSED, BONDED & INSURED', w * 0.5, h * 0.88);
+
+  // the badge: navy ring with its lettering round it, Igor inside
+  const bx = h * 0.42, by = h * 0.42, R = h * 0.34;
+  g.fillStyle = NAVY; g.beginPath(); g.arc(bx, by, R, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#fff'; g.lineWidth = h * 0.012; g.beginPath(); g.arc(bx, by, R * 0.93, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = '#f4f1e8'; g.beginPath(); g.arc(bx, by, R * 0.66, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = RED; g.lineWidth = h * 0.014; g.beginPath(); g.arc(bx, by, R * 0.66, 0, Math.PI * 2); g.stroke();
+  const ring = (text, mid, flip) => {                       // letters set round the ring
+    g.save(); g.translate(bx, by); g.fillStyle = '#fff'; g.font = `bold ${h * 0.058}px Arial Black, sans-serif`; g.textAlign = 'center';
+    const step = 0.155, start = mid - (text.length - 1) * step / 2 * (flip ? -1 : 1);
+    (flip ? [...text].reverse() : [...text]).forEach((ch, i) => {          // (along the bottom it runs the other way round)
+      const a = start + i * step * (flip ? -1 : 1);
+      g.save(); g.rotate(a); g.translate(0, flip ? R * 0.8 : -R * 0.8); if (flip) g.rotate(Math.PI); g.fillText(ch, 0, 0); g.restore();
+    });
     g.restore();
-  });
-  igor(g, w * 0.73, h * 0.42, h * 0.5);
+  };
+  ring('CRAZY CONTROL', 0, false);
+  ring('EST 1979', 0, true);
+  g.fillStyle = '#fff';
+  for (const a of [-1.62, 1.62]) { g.beginPath(); g.arc(bx + Math.sin(a) * R * 0.8, by - Math.cos(a) * R * 0.8 + h * 0.012, h * 0.016, 0, Math.PI * 2); g.fill(); }
+  igorHead(g, bx, by + R * 0.06, R * 0.62);
+
+  // the name, the line under it, and the phone number
+  const x = h * 0.86, room = w - x - w * 0.03;
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  g.font = heavy(h * 0.16); g.fillStyle = RED; g.fillText("IGOR'S", x, h * 0.25, room);
+  g.font = heavy(h * 0.2); g.lineJoin = 'round';
+  g.strokeStyle = '#fff'; g.lineWidth = h * 0.03; g.strokeText('CRAZY CONTROL', x, h * 0.47, room);
+  g.fillStyle = NAVY; g.fillText('CRAZY CONTROL', x, h * 0.47, room);
+  g.fillStyle = RED; g.fillRect(x, h * 0.505, room * 0.92, h * 0.012);
+  g.font = `bold ${h * 0.06}px Arial, sans-serif`; g.fillStyle = NAVY;
+  g.fillText('HAUNTINGS  •  POLTERGEISTS  •  THINGS THAT GO BUMP', x, h * 0.585, room);
+  g.font = heavy(h * 0.1); g.fillText('24 HR  (503) 555-0142', x, h * 0.7, room * 0.8);
 }
 
-// Igor, leaping to the right: (cx, cy) is the middle of his body, s about his length nose to rump
-function igor(g, cx, cy, s) {
-  g.save(); g.translate(cx, cy); g.scale(s, s); g.rotate(-0.12);
-  const DARK = '#2b211b', BRINDLE = '#4a3a2e', TAN = '#b8743c', LIGHT = '#e0a463';
-  // a blob shaded like it's airbrushed: light up top left, darker away from it
-  const shaded = (draw, c0, c1, x, y, r) => {
-    const gr = g.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.05, x, y, r * 1.25);
-    gr.addColorStop(0, c0); gr.addColorStop(1, c1);
-    g.fillStyle = gr; g.beginPath(); draw(); g.fill();
-  };
-  const leg = (pts, w0, w1, c0, c1) => {        // a tapering leg along a few points
-    const n = pts.length;
-    for (let i = 1; i < n; i++) {
-      const [ax, ay] = pts[i - 1], [bx, by] = pts[i], t0 = (i - 1) / (n - 1), t1 = i / (n - 1);
-      const wa = w0 + (w1 - w0) * t0, wb = w0 + (w1 - w0) * t1, a = Math.atan2(by - ay, bx - ax), px = -Math.sin(a), py = Math.cos(a);
-      shaded(() => { g.moveTo(ax + px * wa, ay + py * wa); g.lineTo(bx + px * wb, by + py * wb); g.lineTo(bx - px * wb, by - py * wb); g.lineTo(ax - px * wa, ay - py * wa); g.closePath(); },
-        c0, c1, (ax + bx) / 2, (ay + by) / 2, Math.hypot(bx - ax, by - ay));
-      shaded(() => g.arc(bx, by, wb, 0, Math.PI * 2), c0, c1, bx, by, wb * 2);
-    }
-  };
-  const paw = (x, y, r) => shaded(() => g.ellipse(x, y, r * 1.35, r, 0, 0, Math.PI * 2), LIGHT, TAN, x, y, r * 1.4);
-  // far legs first, darker
-  leg([[-0.3, 0.08], [-0.5, 0.2], [-0.72, 0.28]], 0.075, 0.04, '#3a2c22', '#1c1612'); paw(-0.75, 0.29, 0.045);
-  leg([[0.26, 0.1], [0.45, 0.16], [0.64, 0.2]], 0.06, 0.035, '#9a5f30', '#5e3a1e'); paw(0.68, 0.2, 0.04);
-  // the tail, curled up over his back
-  g.lineCap = 'round'; g.lineWidth = 0.075;
-  const tg = g.createLinearGradient(-0.45, -0.05, -0.62, -0.4); tg.addColorStop(0, BRINDLE); tg.addColorStop(1, '#6b5a4c');
-  g.strokeStyle = tg; g.beginPath(); g.moveTo(-0.36, -0.05); g.bezierCurveTo(-0.62, -0.1, -0.7, -0.42, -0.48, -0.48); g.bezierCurveTo(-0.33, -0.52, -0.31, -0.36, -0.41, -0.33); g.stroke();
-  // the body, a tan belly under it
-  shaded(() => g.ellipse(0, 0, 0.4, 0.21, -0.08, 0, Math.PI * 2), '#6a5444', DARK, 0, -0.02, 0.42);
-  shaded(() => g.ellipse(0.05, 0.12, 0.24, 0.08, -0.05, 0, Math.PI * 2), LIGHT, TAN, 0.05, 0.12, 0.24);
-  // a little brindle
-  g.strokeStyle = 'rgba(20, 14, 10, 0.16)'; g.lineWidth = 0.012;
-  for (const [x, l] of [[-0.24, 0.13], [-0.15, 0.17], [-0.05, 0.12], [0.06, 0.16], [0.16, 0.1]]) { g.beginPath(); g.moveTo(x, -0.17); g.quadraticCurveTo(x + 0.03, -0.17 + l * 0.6, x - 0.01, -0.17 + l); g.stroke(); }
-  // near legs: the back one stretched out behind, the front ones reaching
-  leg([[-0.26, 0.06], [-0.45, 0.22], [-0.7, 0.36]], 0.09, 0.045, '#5a4636', DARK); paw(-0.74, 0.38, 0.05);
-  leg([[0.25, 0.06], [0.45, 0.05], [0.72, 0.0]], 0.07, 0.04, LIGHT, TAN); paw(0.76, 0.0, 0.045);
-  // the collar, a black band round his neck
-  g.save(); g.translate(0.38, -0.17); g.rotate(0.35); g.fillStyle = '#0d0d0d'; g.fillRect(-0.04, -0.14, 0.08, 0.27); g.restore();
-  // the ears: tall, pointed, swept back a little, tan inside
-  const ear = (bx, by, tx, ty, w) => {
-    shaded(() => { g.moveTo(bx - w, by); g.quadraticCurveTo(tx - w * 0.6, ty + 0.05, tx, ty); g.quadraticCurveTo(tx + w * 0.3, ty + 0.1, bx + w, by + 0.02); g.closePath(); }, '#5d4a3b', DARK, tx, (by + ty) / 2, 0.25);
-    shaded(() => { g.moveTo(bx - w * 0.5, by - 0.02); g.quadraticCurveTo(tx - w * 0.2, ty + 0.1, tx + 0.005, ty + 0.06); g.quadraticCurveTo(tx + w * 0.15, ty + 0.12, bx + w * 0.5, by); g.closePath(); }, '#e2a77a', '#9c5a35', tx, (by + ty) / 2, 0.2);
-  };
-  ear(0.42, -0.36, 0.34, -0.69, 0.11);
-  // the head: dark skull, tan cheeks and brows, a long tan muzzle, black nose, mouth open
-  shaded(() => g.ellipse(0.52, -0.3, 0.17, 0.15, 0.1, 0, Math.PI * 2), '#6a5444', DARK, 0.52, -0.3, 0.18);
-  ear(0.56, -0.38, 0.63, -0.71, 0.1);
-  shaded(() => g.ellipse(0.55, -0.22, 0.12, 0.08, 0.2, 0, Math.PI * 2), LIGHT, TAN, 0.55, -0.22, 0.13);
-  shaded(() => { g.moveTo(0.56, -0.31); g.quadraticCurveTo(0.74, -0.33, 0.83, -0.27); g.quadraticCurveTo(0.84, -0.2, 0.74, -0.18); g.quadraticCurveTo(0.6, -0.16, 0.55, -0.2); g.closePath(); }, LIGHT, TAN, 0.7, -0.26, 0.16);
-  g.fillStyle = '#5a1414'; g.beginPath(); g.moveTo(0.62, -0.19); g.quadraticCurveTo(0.72, -0.17, 0.78, -0.2); g.quadraticCurveTo(0.74, -0.1, 0.65, -0.12); g.closePath(); g.fill();   // mouth
-  g.fillStyle = '#d4656a'; g.beginPath(); g.ellipse(0.69, -0.13, 0.03, 0.018, 0, 0, Math.PI * 2); g.fill();                                                              // tongue
-  shaded(() => g.ellipse(0.835, -0.275, 0.032, 0.026, 0, 0, Math.PI * 2), '#555', '#000', 0.835, -0.275, 0.03);                                                       // nose
-  // the eye: big and startled, a brown iris looking ahead, a highlight; a tan brow dot over it
-  g.fillStyle = '#f6f1e6'; g.beginPath(); g.ellipse(0.6, -0.36, 0.045, 0.055, 0.2, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#4a2a14'; g.beginPath(); g.arc(0.615, -0.355, 0.028, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#000'; g.beginPath(); g.arc(0.62, -0.355, 0.015, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#fff'; g.beginPath(); g.arc(0.61, -0.368, 0.008, 0, Math.PI * 2); g.fill();
-  g.fillStyle = LIGHT; g.beginPath(); g.ellipse(0.58, -0.43, 0.025, 0.014, 0.3, 0, Math.PI * 2); g.fill();
+// Igor's head in profile, facing right: dark, with tan muzzle and brows, big pointed ears
+function igorHead(g, cx, cy, r) {
+  g.save(); g.translate(cx, cy); g.scale(r, r);
+  const DARK = '#2e241d', TAN = '#c07a3e';
+  const fill = (c, draw) => { g.fillStyle = c; g.beginPath(); draw(); g.fill(); };
+  fill(DARK, () => { g.moveTo(-0.42, -0.2); g.lineTo(-0.5, -0.95); g.lineTo(-0.12, -0.38); g.closePath(); });     // ears
+  fill(DARK, () => { g.moveTo(-0.1, -0.32); g.lineTo(0.05, -1.0); g.lineTo(0.22, -0.3); g.closePath(); });
+  fill('#a8654a', () => { g.moveTo(-0.36, -0.28); g.lineTo(-0.44, -0.78); g.lineTo(-0.2, -0.4); g.closePath(); });
+  fill('#a8654a', () => { g.moveTo(-0.02, -0.36); g.lineTo(0.06, -0.85); g.lineTo(0.14, -0.36); g.closePath(); });
+  fill(DARK, () => g.ellipse(-0.08, -0.06, 0.42, 0.36, 0, 0, Math.PI * 2));                                         // head
+  fill(DARK, () => { g.moveTo(-0.4, 0.1); g.quadraticCurveTo(-0.3, 0.75, 0.1, 0.8); g.lineTo(0.25, 0.25); g.closePath(); });   // neck
+  fill(TAN, () => { g.moveTo(0.05, -0.12); g.quadraticCurveTo(0.45, -0.18, 0.66, -0.04); g.quadraticCurveTo(0.66, 0.12, 0.42, 0.16); g.quadraticCurveTo(0.12, 0.2, 0.0, 0.1); g.closePath(); });   // muzzle
+  fill(TAN, () => g.ellipse(0.06, -0.3, 0.07, 0.04, 0.3, 0, Math.PI * 2));                                        // brow
+  fill('#000', () => g.ellipse(0.64, -0.06, 0.07, 0.055, 0, 0, Math.PI * 2));                                      // nose
+  fill('#fff', () => g.ellipse(0.05, -0.18, 0.075, 0.08, 0, 0, Math.PI * 2));                                      // eye
+  fill('#000', () => g.arc(0.08, -0.18, 0.042, 0, Math.PI * 2));
+  fill('#fff', () => g.arc(0.065, -0.2, 0.014, 0, Math.PI * 2));
+  g.strokeStyle = '#000'; g.lineWidth = 0.025; g.beginPath(); g.moveTo(0.3, 0.12); g.quadraticCurveTo(0.42, 0.16, 0.52, 0.1); g.stroke();   // a grin
+  fill('#c4161c', () => { g.moveTo(-0.28, 0.32); g.quadraticCurveTo(0.0, 0.48, 0.2, 0.36); g.lineTo(0.22, 0.46); g.quadraticCurveTo(0.0, 0.58, -0.3, 0.42); g.closePath(); });   // red collar
   g.restore();
 }
 
