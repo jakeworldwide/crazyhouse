@@ -2931,7 +2931,6 @@ function van() {
   const red = surface(0x9a1616, 0.35), amber = surface(0xc9791c, 0.35), lens = surface(0xd4d8d2, 0.2);
   const plywood = surface(0xb68e5c, 0.85), fabric = surface(0x4a4c51, 0.95), dash = surface(0x2b2c2f, 0.8);
   const plastic = surface(0x2a2c2e, 0.55), liner = surface(0x222222, 1, THREE.DoubleSide), blue = surface(0x1d3778, 0.3);
-  const crease = new THREE.LineBasicMaterial({ color: 0x9c9c97 });
   const bx = (w, h, d, x, y, z, mat, rot) => tint(solid(new THREE.BoxGeometry(w, h, d), [x, y, z], rot), mat);
   const cy = (r, h, x, y, z, mat, rot, segs = 16, rTop = r) => tint(solid(new THREE.CylinderGeometry(rTop, r, h, segs), [x, y, z], rot), mat);
   const ROUND = [Math.PI / 2, 0, 0];                                            // a cylinder's axis turned across the van
@@ -3074,16 +3073,9 @@ function van() {
     tint(solid(new THREE.SphereGeometry(0.1, 10, 8), [0.72, 1.3, 0]), MAT.chrome)
   ];
 
-  // the sides: mirrors, handles, marker lights, the fuel door, the door seams, the crease along the body
-  const seams = [];
-  for (const s of [-1, 1]) {
-    const z = s * 3.305;
-    seams.push([[-10.32, 1.32, z], [-10.32, 6.72, z]], [[-13.52, 1.9, z], [-13.52, 4.58, z]]);
-    if (s < 0) for (const x of [-9.62, -7.62, -5.62]) seams.push([[x, 1.32, z], [x, 6.72, z]]);     // the cargo doors on the kerb side
-  }
+  // the sides: mirrors, handles, marker lights, the fuel door, and the company's decal
   const sideBits = [
-    lines(seams),
-    lines([-1, 1].map(s => [[-16.2, 4.18, s * 3.305], [-0.15, 4.18, s * 3.305]]), crease),
+    ...[-1, 1].map(s => picture(7.2, 3.6, igorLogo, -5.4, 4.45, s * 3.33, s > 0 ? 0 : Math.PI, true)),
     ...[-1, 1].flatMap(s => [
       bar([-13.1, 4.95, s * 3.3], [-13.0, 5.05, s * 3.78], 0.08, 0.08, trim),
       bx(0.14, 0.9, 0.5, -12.95, 5.25, s * 3.98, trim),
@@ -3091,8 +3083,7 @@ function van() {
       small(bx(0.28, 0.12, 0.03, -15.95, 3.42, s * 3.315, amber)),
       small(bx(0.22, 0.12, 0.03, -0.45, 2.35, s * 3.315, red))
     ]),
-    small(cy(0.24, 0.02, -7.25, 3.0, 3.31, paint, ROUND)),
-    small(bx(0.3, 0.08, 0.04, -7.85, 4.2, -3.32, trim))
+    small(cy(0.24, 0.02, -7.25, 3.0, 3.31, paint, ROUND))
   ];
 
   // overhead (you walk under all this, so it never blocks you): the roof, the bows holding it up,
@@ -3115,8 +3106,11 @@ function van() {
 
   // inside: plywood floor, ribs up the walls, the wheel wells (above), the cab
   const inside = [
-    bx(10.4, 0.12, 6.36, -5.2, 2.14, 0, plywood),
-    ...[-1.3, -3.8, -6.9, -9.2].flatMap(x => [-1, 1].map(s => bx(0.22, 4.3, 0.12, x, 4.35, s * 3.14, paint))),
+    // (narrower between the back wheel wells, so it doesn't show through the arches)
+    bx(2.63, 0.12, 6.36, -1.315, 2.14, 0, plywood),
+    bx(2.84, 0.12, 4.4, -4.05, 2.14, 0, plywood),
+    bx(4.93, 0.12, 6.36, -7.935, 2.14, 0, plywood),
+    ...[-1.3, -6.9, -9.2].flatMap(x => [-1, 1].map(s => bx(0.22, 4.3, 0.12, x, 4.35, s * 3.14, paint))),
     // the cab: floor mat, the engine cover between the seats, the dash, the wheel, two seats, door trims
     bx(3.0, 0.1, 6.36, -11.95, 1.95, 0, trim),
     bx(2.3, 1.45, 1.1, -12.25, 2.72, 0, dash),
@@ -3199,7 +3193,6 @@ function van() {
     const w = 2.94, along = z => -s * z;                                          // from the hinge (0) toward the middle
     const parts = [
       bx(0.1, 4.9, w, -0.05, 4.1, along(w / 2), paint),
-      lines([3.57, 4.36].map(y => [[0.005, y, along(0.12)], [0.005, y, along(w - 0.12)]]), crease),
       ...[2.6, 5.6].map(y => bx(0.06, 0.22, 0.12, 0.02, y, along(0.05), MAT.chrome)),
       bx(0.04, 4.6, 0.04, -0.12, 4.1, along(w - 0.3), trim)                      // inside: the latch rod
     ];
@@ -3246,6 +3239,87 @@ function badge(g, w, h) {
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.strokeStyle = '#b9bcbf'; g.lineWidth = h * 0.08; g.strokeText('E-350', w / 2, h * 0.55); g.fillText('E-350', w / 2, h * 0.55);
 }
+/* The decal on the van's sides: IGOR CRAZY CONTROL in fat rounded black
+   letters (an old pest control van's logo), with Igor leaping across it:
+   a little dark brindle dog, tan legs and face, big upright ears, curly
+   tail, mid-pounce, airbrushed like 70s van art. */
+function igorLogo(g, w, h) {
+  // the letters: filled, then traced round thick with round joins, which fattens and rounds them
+  const size = h * 0.26, x0 = w * 0.04;
+  g.fillStyle = g.strokeStyle = '#0d0d0d';
+  g.lineJoin = 'round'; g.lineWidth = size * 0.055;
+  g.font = `bold ${size}px "Arial Rounded MT Bold", "Helvetica Rounded", "Arial Black", sans-serif`;
+  g.textBaseline = 'alphabetic';
+  [['IGOR', 0.3], ['CRAZY', 0.6], ['CONTROL', 0.9]].forEach(([word, y]) => {
+    g.save(); g.translate(x0, h * y); g.scale(1, 1.08);
+    g.strokeText(word, 0, 0); g.fillText(word, 0, 0);
+    g.restore();
+  });
+  igor(g, w * 0.73, h * 0.42, h * 0.5);
+}
+
+// Igor, leaping to the right: (cx, cy) is the middle of his body, s about his length nose to rump
+function igor(g, cx, cy, s) {
+  g.save(); g.translate(cx, cy); g.scale(s, s); g.rotate(-0.12);
+  const DARK = '#2b211b', BRINDLE = '#4a3a2e', TAN = '#b8743c', LIGHT = '#e0a463';
+  // a blob shaded like it's airbrushed: light up top left, darker away from it
+  const shaded = (draw, c0, c1, x, y, r) => {
+    const gr = g.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.05, x, y, r * 1.25);
+    gr.addColorStop(0, c0); gr.addColorStop(1, c1);
+    g.fillStyle = gr; g.beginPath(); draw(); g.fill();
+  };
+  const leg = (pts, w0, w1, c0, c1) => {        // a tapering leg along a few points
+    const n = pts.length;
+    for (let i = 1; i < n; i++) {
+      const [ax, ay] = pts[i - 1], [bx, by] = pts[i], t0 = (i - 1) / (n - 1), t1 = i / (n - 1);
+      const wa = w0 + (w1 - w0) * t0, wb = w0 + (w1 - w0) * t1, a = Math.atan2(by - ay, bx - ax), px = -Math.sin(a), py = Math.cos(a);
+      shaded(() => { g.moveTo(ax + px * wa, ay + py * wa); g.lineTo(bx + px * wb, by + py * wb); g.lineTo(bx - px * wb, by - py * wb); g.lineTo(ax - px * wa, ay - py * wa); g.closePath(); },
+        c0, c1, (ax + bx) / 2, (ay + by) / 2, Math.hypot(bx - ax, by - ay));
+      shaded(() => g.arc(bx, by, wb, 0, Math.PI * 2), c0, c1, bx, by, wb * 2);
+    }
+  };
+  const paw = (x, y, r) => shaded(() => g.ellipse(x, y, r * 1.35, r, 0, 0, Math.PI * 2), LIGHT, TAN, x, y, r * 1.4);
+  // far legs first, darker
+  leg([[-0.3, 0.08], [-0.5, 0.2], [-0.72, 0.28]], 0.075, 0.04, '#3a2c22', '#1c1612'); paw(-0.75, 0.29, 0.045);
+  leg([[0.26, 0.1], [0.45, 0.16], [0.64, 0.2]], 0.06, 0.035, '#9a5f30', '#5e3a1e'); paw(0.68, 0.2, 0.04);
+  // the tail, curled up over his back
+  g.lineCap = 'round'; g.lineWidth = 0.075;
+  const tg = g.createLinearGradient(-0.45, -0.05, -0.62, -0.4); tg.addColorStop(0, BRINDLE); tg.addColorStop(1, '#6b5a4c');
+  g.strokeStyle = tg; g.beginPath(); g.moveTo(-0.36, -0.05); g.bezierCurveTo(-0.62, -0.1, -0.7, -0.42, -0.48, -0.48); g.bezierCurveTo(-0.33, -0.52, -0.31, -0.36, -0.41, -0.33); g.stroke();
+  // the body, a tan belly under it
+  shaded(() => g.ellipse(0, 0, 0.4, 0.21, -0.08, 0, Math.PI * 2), '#6a5444', DARK, 0, -0.02, 0.42);
+  shaded(() => g.ellipse(0.05, 0.12, 0.24, 0.08, -0.05, 0, Math.PI * 2), LIGHT, TAN, 0.05, 0.12, 0.24);
+  // a little brindle
+  g.strokeStyle = 'rgba(20, 14, 10, 0.16)'; g.lineWidth = 0.012;
+  for (const [x, l] of [[-0.24, 0.13], [-0.15, 0.17], [-0.05, 0.12], [0.06, 0.16], [0.16, 0.1]]) { g.beginPath(); g.moveTo(x, -0.17); g.quadraticCurveTo(x + 0.03, -0.17 + l * 0.6, x - 0.01, -0.17 + l); g.stroke(); }
+  // near legs: the back one stretched out behind, the front ones reaching
+  leg([[-0.26, 0.06], [-0.45, 0.22], [-0.7, 0.36]], 0.09, 0.045, '#5a4636', DARK); paw(-0.74, 0.38, 0.05);
+  leg([[0.25, 0.06], [0.45, 0.05], [0.72, 0.0]], 0.07, 0.04, LIGHT, TAN); paw(0.76, 0.0, 0.045);
+  // the collar, a black band round his neck
+  g.save(); g.translate(0.38, -0.17); g.rotate(0.35); g.fillStyle = '#0d0d0d'; g.fillRect(-0.04, -0.14, 0.08, 0.27); g.restore();
+  // the ears: tall, pointed, swept back a little, tan inside
+  const ear = (bx, by, tx, ty, w) => {
+    shaded(() => { g.moveTo(bx - w, by); g.quadraticCurveTo(tx - w * 0.6, ty + 0.05, tx, ty); g.quadraticCurveTo(tx + w * 0.3, ty + 0.1, bx + w, by + 0.02); g.closePath(); }, '#5d4a3b', DARK, tx, (by + ty) / 2, 0.25);
+    shaded(() => { g.moveTo(bx - w * 0.5, by - 0.02); g.quadraticCurveTo(tx - w * 0.2, ty + 0.1, tx + 0.005, ty + 0.06); g.quadraticCurveTo(tx + w * 0.15, ty + 0.12, bx + w * 0.5, by); g.closePath(); }, '#e2a77a', '#9c5a35', tx, (by + ty) / 2, 0.2);
+  };
+  ear(0.42, -0.36, 0.34, -0.69, 0.11);
+  // the head: dark skull, tan cheeks and brows, a long tan muzzle, black nose, mouth open
+  shaded(() => g.ellipse(0.52, -0.3, 0.17, 0.15, 0.1, 0, Math.PI * 2), '#6a5444', DARK, 0.52, -0.3, 0.18);
+  ear(0.56, -0.38, 0.63, -0.71, 0.1);
+  shaded(() => g.ellipse(0.55, -0.22, 0.12, 0.08, 0.2, 0, Math.PI * 2), LIGHT, TAN, 0.55, -0.22, 0.13);
+  shaded(() => { g.moveTo(0.56, -0.31); g.quadraticCurveTo(0.74, -0.33, 0.83, -0.27); g.quadraticCurveTo(0.84, -0.2, 0.74, -0.18); g.quadraticCurveTo(0.6, -0.16, 0.55, -0.2); g.closePath(); }, LIGHT, TAN, 0.7, -0.26, 0.16);
+  g.fillStyle = '#5a1414'; g.beginPath(); g.moveTo(0.62, -0.19); g.quadraticCurveTo(0.72, -0.17, 0.78, -0.2); g.quadraticCurveTo(0.74, -0.1, 0.65, -0.12); g.closePath(); g.fill();   // mouth
+  g.fillStyle = '#d4656a'; g.beginPath(); g.ellipse(0.69, -0.13, 0.03, 0.018, 0, 0, Math.PI * 2); g.fill();                                                              // tongue
+  shaded(() => g.ellipse(0.835, -0.275, 0.032, 0.026, 0, 0, Math.PI * 2), '#555', '#000', 0.835, -0.275, 0.03);                                                       // nose
+  // the eye: big and startled, a brown iris looking ahead, a highlight; a tan brow dot over it
+  g.fillStyle = '#f6f1e6'; g.beginPath(); g.ellipse(0.6, -0.36, 0.045, 0.055, 0.2, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#4a2a14'; g.beginPath(); g.arc(0.615, -0.355, 0.028, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#000'; g.beginPath(); g.arc(0.62, -0.355, 0.015, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(0.61, -0.368, 0.008, 0, Math.PI * 2); g.fill();
+  g.fillStyle = LIGHT; g.beginPath(); g.ellipse(0.58, -0.43, 0.025, 0.014, 0.3, 0, Math.PI * 2); g.fill();
+  g.restore();
+}
+
 // three polaroids of the house, a scrawl under each
 function polaroids(g, w, h) {
   const shots = [
@@ -3354,13 +3428,17 @@ function lampPost(lamps, x, z) {
   light.position.set(x, y + H + 0.5, z);
   light.shadow.intensity = 0.85;
   lamps.push(light);
-  return named('lamp-post',
-    tint(solid(new THREE.CylinderGeometry(0.22, 0.32, 0.8, 8), [x, y + 0.4, z]), iron),
-    tint(solid(new THREE.CylinderGeometry(0.1, 0.12, H, 8), [x, y + H / 2, z]), iron),
+  // the lantern's own cap and roof mustn't shadow the bulb inside (the cap threw a big square on the lawn)
+  const head = [
     tint(solid(new THREE.CylinderGeometry(0.24, 0.2, 0.3, 4).rotateY(Math.PI / 4), [x, y + H + 0.1, z]), iron),
     glow(lantern, x, y + H + 0.6, z),
     tint(solid(roof, [x, y + H + 1.3, z]), iron),
-    tint(solid(new THREE.CylinderGeometry(0.06, 0.1, 0.25, 6), [x, y + H + 1.6, z]), iron),
+    tint(solid(new THREE.CylinderGeometry(0.06, 0.1, 0.25, 6), [x, y + H + 1.6, z]), iron)];
+  head.forEach(p => p.traverse(o => { if (o.isMesh) o.userData.noShadow = true; }));
+  return named('lamp-post',
+    tint(solid(new THREE.CylinderGeometry(0.22, 0.32, 0.8, 8), [x, y + 0.4, z]), iron),
+    tint(solid(new THREE.CylinderGeometry(0.1, 0.12, H, 8), [x, y + H / 2, z]), iron),
+    ...head,
     light);
 }
 

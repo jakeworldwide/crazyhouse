@@ -4,11 +4,11 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { buildWorld, ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=47';
+import { buildWorld, ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=50';
 import { buildPVS } from './pvs.js?v=3';
-import { createEmp } from './emp.js?v=9';
-import { CAMS, camAt } from './cams.js?v=13';
-import { createGhoul } from './ghoul.js?v=15';
+import { createEmp } from './emp.js?v=12';
+import { CAMS, camAt } from './cams.js?v=16';
+import { createGhoul } from './ghoul.js?v=18';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
@@ -372,7 +372,7 @@ function setup() {
       isNight: () => night, camIndex: () => camIndex
     };
     window.crazyhouse = api;
-    import('./debug.js?v=30').then(m => m.createDebug(api));
+    import('./debug.js?v=33').then(m => m.createDebug(api));
   }
 
   return true;
