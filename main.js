@@ -4,11 +4,11 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { buildWorld, ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=45';
-import { buildPVS } from './pvs.js?v=2';
-import { createEmp } from './emp.js?v=7';
-import { CAMS, camAt } from './cams.js?v=11';
-import { createGhoul } from './ghoul.js?v=13';
+import { buildWorld, ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=47';
+import { buildPVS } from './pvs.js?v=3';
+import { createEmp } from './emp.js?v=9';
+import { CAMS, camAt } from './cams.js?v=13';
+import { createGhoul } from './ghoul.js?v=15';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
@@ -145,6 +145,85 @@ function ghoulInView() {
 }
 
 
+/* ─── the van's monitor (first person) ──────── */
+
+/* First person starts you in the van out front, at the monitor the feed
+   comes in on (world.js). It really shows a cam: a little second view of
+   the house, drawn every third frame while you're close enough to see it,
+   with that cam's culling and lights, and a washed-out, scanlined
+   security-monitor look. E on the screen (firstperson.js) flips to the
+   next cam. */
+const MONITOR_W = 240, MONITOR_H = 184;
+let monitor = null, vanLight = null;
+function setupMonitor() {
+  const screen = scene.getObjectByName('van-screen');
+  if (!screen) return;
+  const rt = new THREE.WebGLRenderTarget(MONITOR_W, MONITOR_H, { type: analog.picture.texture.type });
+  const label = document.createElement('canvas');
+  label.width = 256; label.height = 196;
+  const labelTex = new THREE.CanvasTexture(label);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { feed: { value: rt.texture }, label: { value: labelTex }, time: { value: 0 } },
+    vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `
+      uniform sampler2D feed, label; uniform float time; varying vec2 vUv;
+      float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      void main() {
+        vec2 c = vUv - 0.5, uv = 0.5 + c * (1.0 - 0.07 * dot(c, c));          // the tube's glass bulges a little
+        vec3 col = texture2D(feed, uv).rgb;
+        col = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, 0.55);      // washed out
+        col *= 0.8 + 0.2 * sin(vUv.y * 560.0);                              // scanlines
+        col += (hash(floor(vUv * vec2(240.0, 184.0)) + floor(time * 30.0)) - 0.5) * 0.05;
+        vec4 l = texture2D(label, vUv);
+        col = mix(col, l.rgb * 1.5, l.a);                                   // the cam's name and the time
+        col *= 1.0 - 0.85 * pow(clamp(length(c) * 1.3, 0.0, 1.0), 4.0);    // dark round the edges
+        gl_FragColor = vec4(col * 1.35, 1.0);
+      }`
+  });
+  screen.traverse(o => { if (o.isMesh) o.material = mat; });
+  const cam = new THREE.PerspectiveCamera(80, MONITOR_W / MONITOR_H, 0.1, 600);
+  cam.layers.enable(GLASS_LAYER);
+  monitor = { rt, mat, cam, label, labelTex, index: 0, skip: 0, key: '', fp: false, at: screen.getWorldPosition(new THREE.Vector3()) };
+  screen.userData.use = () => { monitor.index = (monitor.index + 1) % CAMS.length; monitor.skip = 0; sounds.thunk(); };
+  screen.userData.useHint = 'next cam';
+}
+function tickMonitor(now) {
+  // the van's work light is only on while you're out there (off, the light budget leaves it last)
+  if (vanLight) vanLight.intensity = debug.fp || debug.free ? vanLight.userData.on : 0;
+  if (!monitor) return;
+  if (debug.fp && !monitor.fp) monitor.index = camIndex;                  // it starts on the cam you were watching
+  monitor.fp = debug.fp;
+  if (!debug.fp || camera.position.distanceTo(monitor.at) > 20 || (monitor.skip = (monitor.skip + 1) % 3) !== 1) return;
+  const c = CAMS[monitor.index], key = monitor.index + clock.textContent;
+  if (key !== monitor.key) {                                               // the label, when the cam or the minute changes
+    monitor.key = key;
+    const g = monitor.label.getContext('2d'), H = monitor.label.height;
+    g.clearRect(0, 0, monitor.label.width, H);
+    g.font = '22px VT323, monospace';
+    g.textBaseline = 'top';
+    const tag = (text, x, y) => { g.fillStyle = '#000'; g.fillRect(x - 4, y - 2, g.measureText(text).width + 8, 22); g.fillStyle = '#fff'; g.fillText(text, x, y); };
+    tag('CAM ' + String(monitor.index + 1).padStart(2, '0'), 12, 10);
+    tag(c.name.toUpperCase(), 12, 34);
+    tag(clock.textContent, 12, H - 30);
+    monitor.labelTex.needsUpdate = true;
+  }
+  monitor.mat.uniforms.time.value = now / 1000;
+  const cam = monitor.cam;
+  cam.position.set(...c.pos);
+  cam.fov = c.fov;
+  cam.updateProjectionMatrix();
+  cam.lookAt(...c.look);
+  // what that cam sees, culled and lit the way it would be; then back to yours
+  pvs.apply(monitor.index);
+  if (!debug.unlit) applyLightBudget(cam.position);
+  const was = renderer.getRenderTarget();
+  renderer.setRenderTarget(monitor.rt);
+  renderer.render(scene, cam);
+  renderer.setRenderTarget(was);
+  pvs.apply(null);
+  if (!debug.unlit) applyLightBudget(camera.position);
+}
+
 /* ─── the screen (runs at page load) ───────── */
 
 /* The renderer and the NTSC pass come up straight away, so the title
@@ -251,6 +330,7 @@ function setup() {
     if (o.shadow) { o.shadow.camera.layers.enable(GHOST_LAYER); o.shadow.camera.layers.enable(CULL_LAYER); }
   });
   ghost = createGhostPass(renderer);
+  setupMonitor();
   // craziness: the engine (craziness.js) and what can go crazy (craziness-list.js)
   craziness = createCraziness({ list: CRAZINESS, hour: HOUR, ctx: {
     THREE, scene, X, Z, FLOOR, walkHeight,
@@ -269,6 +349,10 @@ function setup() {
   // per-cam culling: what each cam can see, worked out once (pvs.js)
   pvs = buildPVS(renderer, scene, worldRoots, CAMS, CULL_LAYER);
   scene.userData.pvs = pvs;
+  // the van's out front for first person; no cam needs it (the living room just catches it through a window)
+  for (const n of ['van', 'van-step']) pvs.never(scene.getObjectByName(n));
+  vanLight = scene.getObjectByName('van-light');
+  vanLight.userData.on = vanLight.intensity;
 
   fit();
 
@@ -288,7 +372,7 @@ function setup() {
       isNight: () => night, camIndex: () => camIndex
     };
     window.crazyhouse = api;
-    import('./debug.js?v=27').then(m => m.createDebug(api));
+    import('./debug.js?v=30').then(m => m.createDebug(api));
   }
 
   return true;
@@ -361,6 +445,7 @@ function loop(now) {
   pvs.apply(debug.free || debug.fov || debug.fp ? null : camIndex);
   if (!debug.unlit) applyLightBudget(camera.position);        // lighting off (debug) keeps every light off
   updateView();
+  tickMonitor(now);
   for (const tick of ticks) tick(dt);
   tickEmp();
   refreshShadows();

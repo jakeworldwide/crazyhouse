@@ -2755,7 +2755,7 @@ export function walkHeight(x, z) {
   if (inside(px, py, FOOTPRINT) || (px >= 0 && px <= 105 && py >= 482 && py <= 814) || (px >= 738 && px <= 1256 && py >= 154 && py <= 345)) return FLOOR;
   if (py >= 593 && py <= 703 && px < 0 && px >= -3 * K) return FLOOR - 0.625 * (Math.floor(-px / K) + 1);             // front steps
   if (px >= 815 && px <= 905 && py < 154 && py >= 154 - 3 * K) return FLOOR - 0.625 * (Math.floor((154 - py) / K) + 1);   // back steps
-  return groundHeight(x, z);
+  return vanFloor(x, z) ?? groundHeight(x, z);                                                                            // the van, or the land
 }
 
 /* What you see when you look closely at things (first person, E). Keyed
@@ -2783,6 +2783,7 @@ export const INSPECT = {
   'lamp-pillar': "A gaudy little Tiffany lamp. The bulb flickers when you lean in close.",
   'fridge': "The fridge hums. Something inside it ticks, then stops.",
   'stereo': "The receiver's dial is lit, tuned between stations. Under the hiss, very faintly, someone is counting.",
+  'van-step': "A wooden step you knocked together, so you're not hauling yourself up onto the bumper every time.",
   'fiddle-fig': "The soil is wet. Somebody watered it today. One leaf has been torn in half and laid neatly on the soil.",
 };
 
@@ -2881,6 +2882,401 @@ function driveway() {
     return c.clone().lerp(roadColour(x, z), 1 - m);                       // fades into the shoulder or the grass
   };
   return named('driveway', groundPatch(DRIVE.x0, DRIVE.x1 + 4, DRIVE.z0 - 4, DRIVE.z1 + 4, 60, 72, colourAt, -2));
+}
+
+/* ─── the van ───────────────────────────────── */
+
+/* Your van: a white late-90s full-size cargo van, backed into the gravel
+   pull-off so its back doors face the house. Behind the seats there's a
+   plywood desk with the monitor the feed comes in on, a recorder, and a
+   chair; first person starts you sitting in it (VAN_SEAT). The back doors
+   open (E). You climb in off a wooden step and the back bumper, and
+   inside you have to crouch (walkHeight and headroom know about it).
+
+   It's built in its own space and then tilted to sit on the slope of the
+   drive: x runs back to front (0 is the back of the body, the nose is
+   at about -17), y is up from the ground under it, z is across (+z is
+   the driver's side). VAN.x is where its back end is. */
+export const VAN = { x: -88, z: 20, floor: 2.2, tilt: Math.atan(0.075) };
+const VAN_ROOF = 6.9, VAN_INSIDE = 10.2;            // the roof; how far forward from the back doors you can walk
+export const VAN_SEAT = (() => {
+  const lx = -7.6, ly = VAN.floor, c = Math.cos(VAN.tilt), s = Math.sin(VAN.tilt);
+  return { x: VAN.x + lx * c - ly * s, z: VAN.z + 0.15, yaw: Math.PI };      // facing +z: the monitor
+})();
+
+/* Where you can stand in and behind the van: the cargo floor, the back
+   bumper and the wooden step behind it, each one a step up from the last.
+   (The van leans with the drive, so its floor is always this far above
+   the ground right under it.) */
+function vanFloor(x, z) {
+  const dz = Math.abs(z - VAN.z), back = x - VAN.x;
+  if (back <= 0 && back >= -VAN_INSIDE && dz <= 2.95) return groundHeight(x, z) + VAN.floor;
+  if (back > 0 && back <= 1 && dz <= 3.3) return groundHeight(x, z) + 1.6;
+  if (back > 1 && back <= 2.05 && dz <= 1.1) return groundHeight(x, z) + 0.8;
+  return null;
+}
+// how high your eyes can be above the floor here (first person): in the van you crouch,
+// and on the bumper you duck under the top of the door
+export function headroom(x, z) {
+  const dz = Math.abs(z - VAN.z), back = x - VAN.x;
+  if (back <= 0 && back >= -VAN_INSIDE && dz <= 2.95) return 3.95;
+  if (back > 0 && back <= 1 && dz <= 3.3) return 4.6;
+  return Infinity;
+}
+
+function van() {
+  const paint = surface(0xe6e6e0, 0.42);
+  paint.metalness = 0.12;                                                       // white, a little gloss
+  const trim = surface(0x1a1b1d, 0.6), tyre = surface(0x141414, 0.95), hub = metal(0xc2c5c8, 0.35);
+  const red = surface(0x9a1616, 0.35), amber = surface(0xc9791c, 0.35), lens = surface(0xd4d8d2, 0.2);
+  const plywood = surface(0xb68e5c, 0.85), fabric = surface(0x4a4c51, 0.95), dash = surface(0x2b2c2f, 0.8);
+  const plastic = surface(0x2a2c2e, 0.55), liner = surface(0x222222, 1, THREE.DoubleSide), blue = surface(0x1d3778, 0.3);
+  const crease = new THREE.LineBasicMaterial({ color: 0x9c9c97 });
+  const bx = (w, h, d, x, y, z, mat, rot) => tint(solid(new THREE.BoxGeometry(w, h, d), [x, y, z], rot), mat);
+  const cy = (r, h, x, y, z, mat, rot, segs = 16, rTop = r) => tint(solid(new THREE.CylinderGeometry(rTop, r, h, segs), [x, y, z], rot), mat);
+  const ROUND = [Math.PI / 2, 0, 0];                                            // a cylinder's axis turned across the van
+  // a bar from a to b (feet), w by d thick
+  const bar = (a, b, w, d, mat) => {
+    const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b);
+    const g = tint(solid(new THREE.BoxGeometry(w, d, A.distanceTo(B))), mat);
+    g.position.copy(A).add(B).multiplyScalar(0.5);
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), B.clone().sub(A).normalize());
+    return g;
+  };
+  // a flat four-cornered piece (glass, mostly)
+  const quad = (pts, mat) => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute([...pts[0], ...pts[1], ...pts[2], ...pts[0], ...pts[2], ...pts[3]], 3));
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, mat);
+    m.userData.keep = true;
+    return m;
+  };
+  const glassy = m => { m.layers.set(GLASS_LAYER); m.userData.noShadow = true; return m; };
+  // a little picture (a plate, a badge, photos), w by h feet, facing along ry
+  const picture = (w, h, draw, x, y, z, ry, see = false) => {
+    if (typeof document === 'undefined') return new THREE.Group();
+    const c = document.createElement('canvas');
+    c.width = Math.round(w * 256); c.height = Math.round(h * 256);
+    draw(c.getContext('2d'), c.width, c.height);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6, transparent: see }));
+    m.position.set(x, y, z);
+    m.rotation.y = ry;
+    m.userData.keep = true;
+    m.userData.small = true;
+    return m;
+  };
+
+  /* The side: one outline, the profile of the whole van (the boxy back,
+     the windscreen and the short sloping hood, the wheel arches cut out
+     of the bottom), with the cab door's window cut out of it. */
+  const profile = () => {
+    const s = new THREE.Shape();
+    s.moveTo(0, 1.3);
+    s.lineTo(0, 6.7);
+    s.quadraticCurveTo(0, VAN_ROOF, -0.2, VAN_ROOF);
+    s.lineTo(-11.6, VAN_ROOF);
+    s.quadraticCurveTo(-11.95, VAN_ROOF, -12.02, 6.72);
+    s.lineTo(-13.55, 4.6);
+    s.quadraticCurveTo(-13.62, 4.53, -13.75, 4.52);
+    s.lineTo(-16.15, 4.05);
+    s.quadraticCurveTo(-16.45, 4.0, -16.45, 3.75);
+    s.lineTo(-16.45, 1.55);
+    s.quadraticCurveTo(-16.45, 1.3, -16.32, 1.3);
+    s.absarc(-14.9, 1.3, 1.42, Math.PI, 0, true);                                // front wheel arch
+    s.lineTo(-5.47, 1.3);
+    s.absarc(-4.05, 1.3, 1.42, Math.PI, 0, true);                                // back wheel arch
+    s.lineTo(0, 1.3);
+    s.holes.push(windowHole());
+    return s;
+  };
+  const windowHole = () => {
+    const w = new THREE.Path();
+    w.moveTo(-13.14, 4.75); w.lineTo(-10.5, 4.75); w.lineTo(-10.5, 6.42); w.lineTo(-11.9, 6.42); w.lineTo(-13.14, 4.75);
+    return w;
+  };
+  const sides = [-1, 1].map(s => {
+    const geo = new THREE.ExtrudeGeometry(profile(), { depth: 0.1, bevelEnabled: false });
+    geo.translate(0, 0, s * 3.25 - 0.05);
+    const win = new THREE.ShapeGeometry(new THREE.Shape(windowHole().getPoints()));
+    win.translate(0, 0, s * 3.25);
+    return [tint(solid(geo), paint), glassy(new THREE.Mesh(win, MAT.glass))];
+  }).flat();
+
+  const body = [
+    ...sides,
+    // the hood, its rounded nose, the flat front, and the dark strip where the wipers sit
+    bx(2.45, 0.08, 6.5, -14.95, 4.285, 0, paint, [0, 0, 0.193]),
+    bx(0.43, 0.08, 6.5, -16.3, 3.9, 0, paint, [0, 0, Math.PI / 4]),
+    bx(0.06, 2.2, 6.44, -16.42, 2.65, 0, paint),
+    bx(0.3, 0.05, 6.3, -13.62, 4.59, 0, trim, [0, 0, 0.51]),
+    bar([-13.42, 4.76, -2.1], [-13.27, 4.97, -0.35], 0.05, 0.05, trim),
+    bar([-13.42, 4.76, 0.35], [-13.27, 4.97, 2.1], 0.05, 0.05, trim),
+    // the windscreen: glass in a black rubber surround, white pillars either side
+    glassy(quad([[-13.47, 4.71, -2.98], [-13.47, 4.71, 2.98], [-12.1, 6.62, 2.98], [-12.1, 6.62, -2.98]], MAT.glass)),
+    bar([-13.47, 4.71, -3.0], [-13.47, 4.71, 3.0], 0.08, 0.08, trim),
+    bar([-12.1, 6.62, -3.0], [-12.1, 6.62, 3.0], 0.08, 0.08, trim),
+    ...[-1, 1].flatMap(s => [
+      bar([-13.47, 4.71, s * 3.0], [-12.1, 6.62, s * 3.0], 0.08, 0.08, trim),
+      bar([-13.55, 4.6, s * 3.13], [-12.02, 6.72, s * 3.13], 0.24, 0.24, paint)
+    ]),
+    // the back: corner pillars round the doors, the sill under them
+    ...[-1, 1].map(s => bx(0.12, 5.3, 0.35, -0.06, 3.95, s * 3.125, paint)),
+    bx(0.12, 0.35, 5.9, -0.06, 1.475, 0, paint),
+    // the dark underneath: frame, axles, the works
+    bx(15.2, 0.5, 4.6, -8.4, 1.05, 0, trim)
+  ];
+
+  // the wheels: tyres, silver hubcaps, and the dark wheel arches inside the body
+  const wheels = [-14.9, -4.05].flatMap(ax => [-1, 1].flatMap(s => [
+    cy(1.2, 0.72, ax, 1.2, s * 2.85, tyre, ROUND, 22),
+    cy(0.8, 0.04, ax, 1.2, s * 3.22, hub, ROUND, 20),
+    cy(0.6, 0.02, ax, 1.2, s * 3.245, trim, ROUND, 18),
+    cy(0.28, 0.06, ax, 1.2, s * 3.26, hub, ROUND, 12),
+    tint(solid(new THREE.CylinderGeometry(1.42, 1.42, 1.08, 18, 1, true, Math.PI / 2, Math.PI), [ax, 1.3, s * 2.75], ROUND), liner),
+    tint(solid(new THREE.CircleGeometry(1.42, 18, 0, Math.PI), [ax, 1.3, s * 2.21]), liner)
+  ]));
+
+  // the front: chrome-ringed grille with its bars, the blue oval, headlights, amber corners, the big chrome bumper
+  const front = [
+    bx(0.05, 1.05, 2.6, -16.47, 2.95, 0, MAT.chrome),
+    bx(0.05, 0.85, 2.4, -16.49, 2.95, 0, trim),
+    ...[2.72, 2.95, 3.18].map(y => bx(0.03, 0.06, 2.4, -16.52, y, 0, MAT.chrome)),
+    (() => {
+      const o = cy(0.21, 0.04, -16.47, 3.6, 0, blue, [0, 0, Math.PI / 2]);
+      o.scale.set(0.45, 1, 1);                                                    // flattened into an oval
+      return o;
+    })(),
+    ...[-1, 1].flatMap(s => [
+      bx(0.04, 0.72, 1.12, -16.46, 3.0, s * 1.98, MAT.chrome),
+      bx(0.05, 0.6, 1.0, -16.49, 3.0, s * 1.98, lens),
+      bx(0.36, 0.55, 0.32, -16.3, 3.0, s * 3.15, amber),
+      bx(0.42, 0.68, 0.35, -16.52, 1.76, s * 3.3, MAT.chrome, [0, -s * 0.5, 0])
+    ]),
+    bx(0.5, 0.68, 6.4, -16.68, 1.76, 0, MAT.chrome),
+    bx(0.4, 0.38, 6.0, -16.55, 1.23, 0, trim),
+    picture(1.0, 0.5, plate, -16.94, 1.76, 0, -Math.PI / 2)
+  ];
+
+  // the back: tail lights on the corners, the step bumper (holes and all), the hitch
+  const back = [
+    ...[-1, 1].flatMap(s => [
+      bx(0.34, 0.82, 0.36, -0.15, 3.16, s * 3.14, red),
+      bx(0.34, 0.5, 0.36, -0.15, 2.5, s * 3.14, lens)
+    ]),
+    bx(0.55, 0.55, 6.7, 0.275, 1.325, 0, MAT.chrome),
+    ...[-2.6, -1.9, -1.2, 1.2, 1.9, 2.6].map(z => small(cy(0.07, 0.02, 0.3, 1.605, z, trim, null, 8))),
+    bx(0.7, 0.22, 0.22, 0.45, 0.98, 0, trim),
+    cy(0.05, 0.18, 0.72, 1.15, 0, MAT.chrome, null, 8),
+    tint(solid(new THREE.SphereGeometry(0.1, 10, 8), [0.72, 1.3, 0]), MAT.chrome)
+  ];
+
+  // the sides: mirrors, handles, marker lights, the fuel door, the door seams, the crease along the body
+  const seams = [];
+  for (const s of [-1, 1]) {
+    const z = s * 3.305;
+    seams.push([[-10.32, 1.32, z], [-10.32, 6.72, z]], [[-13.52, 1.9, z], [-13.52, 4.58, z]]);
+    if (s < 0) for (const x of [-9.62, -7.62, -5.62]) seams.push([[x, 1.32, z], [x, 6.72, z]]);     // the cargo doors on the kerb side
+  }
+  const sideBits = [
+    lines(seams),
+    lines([-1, 1].map(s => [[-16.2, 4.18, s * 3.305], [-0.15, 4.18, s * 3.305]]), crease),
+    ...[-1, 1].flatMap(s => [
+      bar([-13.1, 4.95, s * 3.3], [-13.0, 5.05, s * 3.78], 0.08, 0.08, trim),
+      bx(0.14, 0.9, 0.5, -12.95, 5.25, s * 3.98, trim),
+      bx(0.32, 0.08, 0.04, -10.85, 4.45, s * 3.32, trim),
+      small(bx(0.28, 0.12, 0.03, -15.95, 3.42, s * 3.315, amber)),
+      small(bx(0.22, 0.12, 0.03, -0.45, 2.35, s * 3.315, red))
+    ]),
+    small(cy(0.24, 0.02, -7.25, 3.0, 3.31, paint, ROUND)),
+    small(bx(0.3, 0.08, 0.04, -7.85, 4.2, -3.32, trim))
+  ];
+
+  // overhead (you walk under all this, so it never blocks you): the roof, the bows holding it up,
+  // the third brake light, the work light clipped up over the desk, the mirror and sun visors up front
+  const overhead = named('van-overhead',
+    bx(11.6, 0.08, 6.44, -5.95, 6.86, 0, paint),
+    bx(0.5, 0.2, 6.44, -11.83, 6.79, 0, paint),
+    bx(0.12, 0.33, 6.44, -0.06, 6.715, 0, paint),
+    bx(0.95, 0.12, 0.95, -2.6, 6.96, 0, surface(0xcfcfca, 0.6)),
+    bx(0.04, 0.12, 0.9, 0.02, 6.74, 0, red),
+    ...[-1.3, -3.8, -6.9, -9.2].map(x => bx(0.22, 0.1, 6.36, x, 6.62, 0, paint)),
+    say("A clip-on work light, running off the battery. It's the only light you've got out here.",
+      tint(solid(new THREE.CylinderGeometry(0.07, 0.2, 0.26, 12, 1, true), [-9.2, 6.15, 2.85], [0.5, 0, -0.35]), surface(0x2a2c2e, 0.5, THREE.DoubleSide)),
+      glowing(new THREE.MeshBasicMaterial({ color: 0xfff1d8 }), new THREE.CircleGeometry(0.17, 12), -9.17, 6.03, 2.8, [-Math.PI / 2 + 0.5, 0, 0]),
+      tint(solid(new THREE.BoxGeometry(0.08, 0.3, 0.08), [-9.2, 6.35, 3.05]), trim)),
+    bx(0.08, 0.28, 0.75, -12.2, 6.42, 0, trim),
+    ...[-1, 1].map(s => bx(0.55, 0.05, 1.35, -12.0, 6.6, s * 1.55, surface(0x8a7f6c, 0.9)))
+  );
+  overhead.userData.passable = true;
+
+  // inside: plywood floor, ribs up the walls, the wheel wells (above), the cab
+  const inside = [
+    bx(10.4, 0.12, 6.36, -5.2, 2.14, 0, plywood),
+    ...[-1.3, -3.8, -6.9, -9.2].flatMap(x => [-1, 1].map(s => bx(0.22, 4.3, 0.12, x, 4.35, s * 3.14, paint))),
+    // the cab: floor mat, the engine cover between the seats, the dash, the wheel, two seats, door trims
+    bx(3.0, 0.1, 6.36, -11.95, 1.95, 0, trim),
+    bx(2.3, 1.45, 1.1, -12.25, 2.72, 0, dash),
+    bx(0.9, 0.08, 0.9, -11.6, 3.49, 0, trim),
+    bx(0.95, 0.88, 6.3, -13.02, 4.11, 0, dash),
+    bx(0.45, 0.22, 1.35, -12.75, 4.62, 1.55, dash),
+    bar([-12.8, 4.25, 1.55], [-12.3, 4.62, 1.55], 0.12, 0.12, dash),
+    tint(solid(new THREE.TorusGeometry(0.62, 0.05, 6, 20).rotateY(Math.PI / 2).rotateZ(1.0), [-12.22, 4.7, 1.55]), dash),
+    tint(solid(new THREE.CylinderGeometry(0.16, 0.16, 0.08, 12).rotateZ(1.0 - Math.PI / 2), [-12.22, 4.7, 1.55]), dash),
+    ...[-1, 1].flatMap(s => [
+      bx(1.35, 0.5, 1.7, -11.2, 3.08, s * 1.6, fabric),
+      bx(1.0, 0.85, 1.2, -11.2, 2.42, s * 1.6, trim),
+      bx(0.32, 2.35, 1.7, -10.52, 4.5, s * 1.6, fabric, [0, 0, -0.14]),
+      bx(0.28, 0.55, 0.95, -10.38, 5.95, s * 1.6, fabric, [0, 0, -0.14]),
+      bx(3.0, 2.0, 0.06, -11.9, 3.7, s * 3.15, dash)
+    ]),
+    say("The keys are in the ignition. You always leave them there, in case you need to get out of here fast.",
+      small(bx(0.06, 0.12, 0.05, -12.55, 4.0, 0.95, MAT.chrome)),
+      small(tint(solid(new THREE.TorusGeometry(0.07, 0.012, 4, 12), [-12.5, 3.88, 0.95]), MAT.chrome)))
+  ];
+
+  /* The surveillance setup, against the driver's side wall: a plywood
+     desk on two end panels with a shelf, the monitor (its screen is
+     'van-screen': main.js shows a cam on it), the recorder, a log book,
+     a thermos, the battery under the desk that runs it all, and photos
+     of the house taped to the wall. */
+  const deskTop = 4.5, mx = -7.6, my = 5.32, mz = 1.78;
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.28, 0.98), new THREE.MeshBasicMaterial({ color: 0x0a0d10 }));
+  screen.position.set(mx, my, mz - 0.005);
+  screen.rotation.y = Math.PI;                                                   // facing the chair
+  const vanScreen = named('van-screen', screen);
+  const desk = [
+    bx(4.2, 0.12, 1.62, -7.7, deskTop - 0.06, 2.39, plywood),
+    bx(0.08, 2.18, 1.6, -9.76, 3.29, 2.39, plywood),
+    bx(0.08, 2.18, 1.6, -5.64, 3.29, 2.39, plywood),
+    bx(4.1, 0.06, 1.4, -7.7, 3.2, 2.48, plywood),
+    say("The monitor the cams come in on. E on the screen switches to the next cam.",
+      bx(1.1, 0.12, 0.9, mx, deskTop + 0.06, mz + 0.6, plastic),
+      bx(1.6, 1.34, 0.3, mx, my, mz + 0.15, plastic),
+      bx(1.2, 1.05, 1.0, mx, my + 0.05, mz + 0.8, plastic),
+      ...[-0.5, -0.3, -0.1].map(dx => small(cy(0.035, 0.04, mx + dx, 4.73, mz - 0.02, trim, ROUND, 8))),
+      glowing(new THREE.MeshBasicMaterial({ color: 0x39ff6a }), new THREE.BoxGeometry(0.05, 0.03, 0.02), mx + 0.62, 4.73, mz - 0.01)),
+    say("The recorder. It's supposed to tape everything. The counter keeps resetting itself to 0000.",
+      bx(1.1, 0.3, 1.05, -6.2, deskTop + 0.15, 2.45, plastic),
+      glowing(new THREE.MeshBasicMaterial({ color: 0x55ffd0 }), new THREE.BoxGeometry(0.36, 0.08, 0.02), -6.0, deskTop + 0.18, 1.92),
+      glowing(new THREE.MeshBasicMaterial({ color: 0xff2a1a }), new THREE.BoxGeometry(0.05, 0.05, 0.02), -6.5, deskTop + 0.18, 1.92)),
+    say("Your log, in your own handwriting. 12:14 chair turned round, living room, reported. 12:40 painting?? Then a page of nothing but the word LOOK, over and over. You don't remember writing that.",
+      bx(0.85, 0.03, 0.62, -9.1, deskTop + 0.015, 2.0, MAT.cream, [0, 0.2, 0]),
+      small(cy(0.02, 0.5, -9.0, deskTop + 0.04, 1.95, trim, [0, 0.5, Math.PI / 2], 6))),
+    say("Coffee, gone cold hours ago.",
+      cy(0.15, 0.85, -9.45, deskTop + 0.43, 2.8, MAT.hunter, null, 12),
+      cy(0.16, 0.14, -9.45, deskTop + 0.92, 2.8, trim, null, 12)),
+    say("A stack of tapes, labelled by date. The newest one is labelled tomorrow.",
+      ...[0, 1, 2, 3].map(k => small(bx(0.62, 0.1, 0.36, -6.6 + (k % 2) * 0.05, 3.28 + k * 0.1, 2.5, plastic, [0, k * 0.08, 0])))),
+    say("A deep-cycle battery and an inverter. Runs the monitor, the recorder and the lantern all night.",
+      bx(0.9, 0.7, 0.55, -9.1, 2.55, 2.6, plastic),
+      small(bx(0.12, 0.08, 0.12, -9.35, 2.94, 2.6, red)),
+      small(bx(0.12, 0.08, 0.12, -8.85, 2.94, 2.6, trim))),
+    lines([[[mx, 4.9, 3.05], [mx, 2.25, 3.1]], [[mx, 2.25, 3.1], [-9.1, 2.25, 3.0]], [[-6.2, 4.6, 2.95], [-6.6, 2.25, 3.1]], [[-6.6, 2.25, 3.1], [mx, 2.25, 3.1]]]),
+    say("Polaroids of the house, taped up. In the last one there's somebody standing in the front window. You took it from right here.",
+      picture(2.0, 0.66, polaroids, -7.6, 6.12, 3.185, Math.PI, true))
+  ];
+
+  // the chair (you sit in it when first person starts, so it doesn't block you)
+  const chair = named('van-chair', say("Your chair. The seat's still warm.", (() => {
+    const c = new THREE.Group();
+    for (let k = 0; k < 5; k++) c.add(tint(solid(new THREE.BoxGeometry(0.8, 0.08, 0.12), [Math.cos(k * 1.2566) * 0.4, 0.12, Math.sin(k * 1.2566) * 0.4], [0, -k * 1.2566, 0]), MAT.dark));
+    c.add(tint(solid(new THREE.CylinderGeometry(0.06, 0.07, 1.0, 8), [0, 0.65, 0]), MAT.dark),
+      tint(solid(new THREE.BoxGeometry(1.45, 0.28, 1.4), [0, 1.3, 0]), fabric),
+      tint(solid(new THREE.BoxGeometry(0.14, 1.3, 1.25), [-0.76, 2.1, 0], [0, 0, -0.12]), fabric),
+      tint(solid(new THREE.BoxGeometry(0.1, 0.55, 0.1), [-0.68, 1.6, 0]), MAT.dark));
+    c.position.set(-7.6, VAN.floor, 0.15);
+    c.rotation.y = -Math.PI / 2;                                                  // facing the monitor
+    return c;
+  })()));
+  chair.userData.passable = true;
+
+  // the back doors: hinged on the outside edges, they swing right round (E in first person)
+  const rearDoor = (s, name) => {
+    const w = 2.94, along = z => -s * z;                                          // from the hinge (0) toward the middle
+    const parts = [
+      bx(0.1, 4.9, w, -0.05, 4.1, along(w / 2), paint),
+      lines([3.57, 4.36].map(y => [[0.005, y, along(0.12)], [0.005, y, along(w - 0.12)]]), crease),
+      ...[2.6, 5.6].map(y => bx(0.06, 0.22, 0.12, 0.02, y, along(0.05), MAT.chrome)),
+      bx(0.04, 4.6, 0.04, -0.12, 4.1, along(w - 0.3), trim)                      // inside: the latch rod
+    ];
+    if (s < 0) parts.push(                                                        // the kerb-side door: handle, plate, oval
+      bx(0.07, 0.12, 0.38, 0.03, 3.95, along(w - 0.35), trim),
+      bx(0.02, 0.66, 1.2, 0.01, 2.9, along(1.7), trim),
+      picture(1.0, 0.5, plate, 0.025, 2.9, along(1.7), Math.PI / 2),
+      (() => { const o = cy(0.19, 0.03, 0.03, 2.2, along(0.62), blue, [0, 0, Math.PI / 2]); o.scale.set(0.45, 1, 1); return o; })());
+    else parts.push(picture(0.8, 0.16, badge, 0.012, 2.2, along(0.82), Math.PI / 2, true));
+    const g = named(name, ...parts);
+    g.position.set(0, 0, s * 2.95);
+    openable(g, t => { g.rotation.y = -s * t * 1.85; });
+    return g;
+  };
+
+  // the work light's light: a soft spot down over the desk and chair, short enough not to reach the
+  // ground outside (it shines through walls, having no shadows). A spot, so the light budget only
+  // switches it on when you're out here (main.js).
+  const light = new THREE.SpotLight(0xffe4c4, 45, 6.5, 1.15, 0.75, 2);
+  light.name = 'van-light';
+  light.position.set(-9.1, 5.95, 2.7);
+  light.target.position.set(-6.8, VAN.floor, 0.4);
+
+  const g = named('van', ...body, ...wheels, ...front, ...back, ...sideBits, ...inside, ...desk,
+    overhead, chair, vanScreen, rearDoor(1, 'van-door-left'), rearDoor(-1, 'van-door-right'), light, light.target);
+  g.position.set(VAN.x, groundHeight(VAN.x, VAN.z), VAN.z);
+  g.rotation.z = VAN.tilt;
+  return g;
+}
+
+// an Oregon plate: white, the green fir in the middle, dark blue letters
+function plate(g, w, h) {
+  g.fillStyle = '#f1efe6'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#30343a'; g.lineWidth = h * 0.04; g.strokeRect(h * 0.03, h * 0.03, w - h * 0.06, h * 0.94);
+  g.fillStyle = 'rgba(60, 110, 70, 0.45)';
+  g.beginPath(); g.moveTo(w / 2, h * 0.18); g.lineTo(w * 0.58, h * 0.78); g.lineTo(w * 0.42, h * 0.78); g.closePath(); g.fill();
+  g.fillStyle = '#1d2f6a'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `bold ${h * 0.17}px Arial, sans-serif`; g.fillText('OREGON', w / 2, h * 0.16);
+  g.font = `bold ${h * 0.5}px Arial Narrow, Arial, sans-serif`; g.fillText('OBS 041', w / 2, h * 0.6);
+}
+// the model badge on the back door
+function badge(g, w, h) {
+  g.fillStyle = '#121314'; g.font = `bold ${h * 0.8}px Arial Black, Arial, sans-serif`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.strokeStyle = '#b9bcbf'; g.lineWidth = h * 0.08; g.strokeText('E-350', w / 2, h * 0.55); g.fillText('E-350', w / 2, h * 0.55);
+}
+// three polaroids of the house, a scrawl under each
+function polaroids(g, w, h) {
+  const shots = [
+    p => { p.fillStyle = '#0e1418'; p.fillRect(0, 0, 1, 1); p.fillStyle = '#26303a'; p.fillRect(0.15, 0.35, 0.7, 0.65); p.fillStyle = '#1a1f24'; p.beginPath(); p.moveTo(0.1, 0.38); p.lineTo(0.5, 0.12); p.lineTo(0.9, 0.38); p.fill(); p.fillStyle = '#e8c27a'; p.fillRect(0.6, 0.5, 0.12, 0.14); },
+    p => { p.fillStyle = '#0b0d0f'; p.fillRect(0, 0, 1, 1); p.fillStyle = '#2b2620'; p.fillRect(0.3, 0.2, 0.4, 0.8); p.fillStyle = '#f1efe2'; p.fillRect(0.44, 0.45, 0.03, 0.03); p.fillRect(0.53, 0.45, 0.03, 0.03); },
+    p => { p.fillStyle = '#121619'; p.fillRect(0, 0, 1, 1); p.fillStyle = '#3a3226'; p.fillRect(0.2, 0.3, 0.6, 0.45); p.fillStyle = '#d8b26a'; p.fillRect(0.3, 0.38, 0.4, 0.3); p.fillStyle = '#050505'; p.beginPath(); p.ellipse(0.5, 0.47, 0.04, 0.05, 0, 0, Math.PI * 2); p.fill(); p.fillRect(0.46, 0.51, 0.08, 0.17); }
+  ];
+  const notes = ['12:40', 'cam 2??', 'from HERE'];
+  shots.forEach((draw, i) => {
+    const pw = w * 0.27, ph = h * 0.92, x = w * (0.04 + i * 0.33), y = h * 0.04, tilt = [-0.06, 0.04, -0.02][i];
+    g.save(); g.translate(x + pw / 2, y + ph / 2); g.rotate(tilt); g.translate(-pw / 2, -ph / 2);
+    g.fillStyle = '#ece8dc'; g.fillRect(0, 0, pw, ph);
+    g.save(); g.translate(pw * 0.08, pw * 0.08); g.scale(pw * 0.84, ph * 0.66); draw(g); g.restore();
+    g.fillStyle = '#26324a'; g.font = `${ph * 0.12}px "Comic Sans MS", "Marker Felt", cursive`; g.textAlign = 'center';
+    g.fillText(notes[i], pw / 2, ph * 0.9);
+    g.fillStyle = 'rgba(230, 220, 170, 0.55)'; g.fillRect(pw * 0.35, -ph * 0.04, pw * 0.3, ph * 0.08);    // tape
+    g.restore();
+  });
+}
+
+// the wooden step you made, so you're not hauling yourself up onto the bumper
+function vanStep() {
+  const x = VAN.x + 1.55, z = VAN.z, wood = surface(0x8a6a48, 0.9);
+  const bx = (w, h, d, px, py, pz) => tint(solid(new THREE.BoxGeometry(w, h, d), [px, py, pz]), wood);
+  const g = named('van-step',
+    bx(1.0, 0.08, 2.2, 0, 0.76, 0),
+    bx(0.08, 0.72, 2.1, -0.44, 0.36, 0), bx(0.08, 0.72, 2.1, 0.44, 0.36, 0),
+    bx(0.9, 0.72, 0.08, 0, 0.36, -1.02), bx(0.9, 0.72, 0.08, 0, 0.36, 1.02));
+  g.position.set(x, groundHeight(x, z), z);
+  g.rotation.z = VAN.tilt;
+  return g;
 }
 
 function path() {
@@ -4356,6 +4752,8 @@ export function buildWorld({ weld = true } = {}) {
     frontPorch(lamps),
     road(),
     driveway(),
+    van(),
+    vanStep(),
     pathLamps(),
     lampPost(lamps, -33.5, -6.5),
     yardAt(mailbox(), -103.5, 2),                 // at the bottom of the walk, by the driveway

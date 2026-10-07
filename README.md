@@ -523,6 +523,21 @@ Press **P** (or the button) in debug mode to stop watching the cams and
 walk round the house yourself (`firstperson.js`): WASD walks, click the
 view and the mouse looks, Shift runs, P goes back to the cams.
 
+**You start in the van.** Your van, a white late-90s cargo van, is backed
+into the gravel pull-off down by the road with its back doors facing the
+house (`van()` in `world.js`). You start sitting in the chair at the desk
+in the back, in front of the monitor the cams come in on, and it really
+shows them: a little live view of whichever cam you were watching, with
+the cam's name and the time on it. **E on the screen** flips to the next
+cam (`tickMonitor()` in `main.js`; it only draws while you're close
+enough to see it). The ceiling's low in there, so you crouch; the back
+doors open with E, and you climb down onto the bumper and the wooden step
+behind it to get out. The desk has a recorder, your log book, a thermos
+and polaroids of the house to look at. The van stays off all the cams
+(the living room can just about see it through a window, and it's not
+worth the draw calls), and its work light only comes on while you're out
+there.
+
 - **E on a light switch** turns its lights on or off. Each room's
   ceiling and wall lights are on a switch plate by its doorway (the
   porch switch by the front door also runs the lamp post and the path
@@ -532,7 +547,10 @@ view and the mouse looks, Shift runs, P goes back to the cams.
   `scene.userData.switches.set('kitchen', false)`. The debug panel has
   them all under **light switches**.
 - **E on anything that opens** (every door, the closets, the fridge,
-  cabinets, the washer lid, the bead curtain...) swings it open or shut.
+  cabinets, the washer lid, the bead curtain, the van's back doors...)
+  swings it open or shut.
+- **E on something you can use** (`userData.use`, like the van's
+  monitor) uses it.
 - **E on something worth a closer look** brings up a text box, typed out
   old PlayStation horror style; you're frozen until you close it (E,
   Space, Enter or a click). The texts are `INSPECT` in `world.js`, keyed
@@ -546,7 +564,10 @@ view and the mouse looks, Shift runs, P goes back to the cams.
   flat map of the floor (doorways stay open, walls don't); doors get
   traced again once they stop moving. Surfaces are sliced into thin
   layers, each judged against the floor right where it is, so you can
-  climb steps (but not jump off the porch). Where the floor is comes from `walkHeight()` in `world.js`.
+  climb steps (but not jump off the porch). Where the floor is comes from `walkHeight()` in `world.js`,
+  and how high your eyes can be from `headroom()` (that's how the van
+  makes you crouch). Things up overhead that you walk under (the van's
+  roof) are marked `passable`.
 
 ## Debugging
 

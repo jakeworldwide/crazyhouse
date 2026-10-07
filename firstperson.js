@@ -10,6 +10,12 @@
    - E on something with something to say (userData.inspect) brings up
      a text box; you're frozen until you've read it (E, Space, Enter or
      a click to close it).
+   - E on something you can use (userData.use, like the van's monitor)
+     uses it.
+
+   You start in the van out front, sitting at the monitor. In the van
+   you crouch (world.js's headroom says how low); walk out the back
+   doors (E to open them) and down the step to get to the house.
 
    Walls and furniture block you. When first person starts, everything
    between your knees and the top of your head is traced into a flat map
@@ -18,9 +24,10 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { walkHeight } from './world.js?v=45';
+import { walkHeight, headroom, VAN_SEAT } from './world.js?v=47';
 
 const EYE = 5.3;               // eye height, feet
+const SIT = 3.6;               // ...sitting in the van's chair (until you move)
 const RADIUS = 0.6;            // how close you can get to things (doorways are under 3 feet)
 const WALK = 5, RUN = 9;       // feet per second
 const STEP = 0.8;              // the tallest step you can climb (or drop)
@@ -139,7 +146,7 @@ export function createFirstPerson({ scene, camera, frame }) {
   };
 
   /* ---- you ---- */
-  const me = { x: 0, z: 0, y: 0, yaw: 0, pitch: 0, bob: 0 };
+  const me = { x: 0, z: 0, y: 0, yaw: 0, pitch: 0, bob: 0, sitting: false };
   const keys = new Set();
   let on = false;
   const ray = new THREE.Raycaster();
@@ -171,6 +178,7 @@ export function createFirstPerson({ scene, camera, frame }) {
     if (!hit) return null;
     for (let o = hit.object; o; o = o.parent) {
       if (o.userData.switch) return { o, kind: 'switch' };
+      if (o.userData.use) return { o, kind: 'use' };
       // a group of little things: only the one you're actually looking at, if it has anything to say
       if (o.userData.areas) {
         const area = o.userData.areas.find(a => a.box.containsPoint(hit.point));
@@ -187,6 +195,7 @@ export function createFirstPerson({ scene, camera, frame }) {
     if (!t) return;
     if (t.kind === 'switch') scene.userData.switches.toggle(t.o.userData.switch);
     else if (t.kind === 'inspect') say(t.text || t.o.userData.inspect);
+    else if (t.kind === 'use') t.o.userData.use();
     else t.o.userData.openTo(t.o.userData.open > 0.5 ? 0 : 1, 0.9);
   };
 
@@ -227,13 +236,13 @@ export function createFirstPerson({ scene, camera, frame }) {
   return {
     get on() { return on; },
     get reading() { return !!reading; },
-    // start in the foyer, just inside the front door, facing into the house
+    // start in the van, sitting at the monitor
     enter() {
       let ms = 0;
       if (!built) ms = build();
       on = true;
-      me.x = (200 - 680.5) / 27.42; me.z = (640 - 620.5) / 27.42; me.yaw = -Math.PI / 2; me.pitch = 0;
-      me.y = floorAt(me.x, me.z) + EYE;
+      me.x = VAN_SEAT.x; me.z = VAN_SEAT.z; me.yaw = VAN_SEAT.yaw; me.pitch = -0.3; me.sitting = true;
+      me.y = floorAt(me.x, me.z) + SIT;
       camera.fov = 70;
       camera.updateProjectionMatrix();
       ui.classList.add('on');
@@ -268,10 +277,12 @@ export function createFirstPerson({ scene, camera, frame }) {
           const n = Math.ceil(Math.hypot(dx, dz) / 0.15);                // small steps, so nothing slips through
           for (let i = 0; i < n; i++) tryMove(dx / n, dz / n);
           me.bob += speed * 2.2;
+          me.sitting = false;                                             // up out of the chair
         }
       }
-      const ground = floorAt(me.x, me.z) + EYE;
-      me.y += (ground - me.y) * Math.min(1, dt * 10);                   // ease up and down steps
+      // your eyes: sitting, crouched under the van's roof, or standing
+      const ground = floorAt(me.x, me.z) + (me.sitting ? SIT : Math.min(EYE, headroom(me.x, me.z)));
+      me.y += (ground - me.y) * Math.min(1, dt * 10);                   // ease up and down steps (and down into a crouch)
       camera.position.set(me.x, me.y + Math.sin(me.bob) * 0.05, me.z);
       camera.rotation.set(me.pitch, me.yaw, 0, 'YXZ');
       // what's in front of you (a few times a second is plenty)
@@ -280,6 +291,7 @@ export function createFirstPerson({ scene, camera, frame }) {
         sinceLook = 0;
         target = look();
         hint.textContent = !target ? '' : target.kind === 'inspect' ? 'E  look' : target.kind === 'switch' ? 'E  light'
+          : target.kind === 'use' ? 'E  ' + (target.o.userData.useHint || 'use')
           : target.o.userData.open > 0.5 ? 'E  close' : 'E  open';
       }
       ui.classList.toggle('target', !!target && !reading);

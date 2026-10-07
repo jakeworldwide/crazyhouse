@@ -20,10 +20,11 @@
 import * as THREE from './vendor/three-r186/three.module.js';
 
 /* roots: the house and yard (not ghoul1 or the EMP, which come and go).
-   cams: the CAMS list. Returns { apply(i), always(obj) }:
+   cams: the CAMS list. Returns { apply(i), always(obj), never(obj) }:
    apply(camIndex) culls for that cam, apply(null) shows everything;
    always(obj) never culls obj's group again (for anomaly code that
-   moves something somewhere new). */
+   moves something somewhere new); never(obj) keeps obj and everything
+   in it off every cam (only first person and the free cam see it). */
 export function buildPVS(renderer, scene, roots, cams, cullLayer) {
   // a unit is the nearest named group above each drawable thing
   const units = [], index = new Map();
@@ -106,12 +107,15 @@ export function buildPVS(renderer, scene, roots, cams, cullLayer) {
   return {
     apply(i) {
       const set = i === null || i === undefined ? null : seen[i];
-      units.forEach((u, k) => show(u, !set || u.always || set.has(k)));
+      units.forEach((u, k) => show(u, !set || (!u.never && (u.always || set.has(k)))));
     },
     always(obj) {
       let u = obj;
       while (u && !index.has(u)) u = u.parent;
       if (u) { units[index.get(u)].always = true; show(units[index.get(u)], true); }
+    },
+    never(obj) {
+      obj.traverse(o => { if (index.has(o)) units[index.get(o)].never = true; });
     },
     stats: () => seen.map(s => `${s.size}/${units.length}`)
   };

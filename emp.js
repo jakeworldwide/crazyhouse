@@ -9,7 +9,7 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { X, Z, FLOOR, CEIL } from './world.js?v=45';
+import { X, Z, FLOOR, CEIL } from './world.js?v=47';
 
 const LENGTH = 1.5;           // seconds the arcs crackle for
 const INSET = 0.5;            // feet in from the room's edges, so walls don't hide the arcs
