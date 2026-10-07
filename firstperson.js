@@ -24,7 +24,7 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { walkHeight, headroom, VAN_SEAT } from './world.js?v=52';
+import { walkHeight, headroom, VAN_SEAT } from './world.js?v=53';
 
 const EYE = 5.3;               // eye height, feet
 const SIT = 3.6;               // ...sitting in the van's chair (until you move)

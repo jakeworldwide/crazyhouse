@@ -27,7 +27,7 @@
                 seconds; p is how far an approach has got, 0..1)
 
    ctx has THREE, scene, X(px), Z(py), FLOOR, walkHeight(x, z),
-   find(name), cam(name), add(obj), remove(obj), moved(x, z),
+   find(name), cam(name), add(obj), remove(obj), moved(x, z), shoePair(),
    paintings (repaint(name, draw, { crisp }) / restore(name)) and
    tween(seconds, f) (f(p) every frame, p easing 0 to 1, for moving
    things smoothly; moves() below does the usual case).
@@ -271,20 +271,6 @@ function chair(THREE, colour = 0x5e4128) {
   return shadows(g);
 }
 
-// a pair of muddy work boots, toes +z
-function boots(THREE) {
-  const leather = new THREE.MeshStandardMaterial({ color: 0x2c1f15, roughness: 0.75 });
-  const mud = new THREE.MeshStandardMaterial({ color: 0x3d3122, roughness: 1 });
-  const g = new THREE.Group();
-  const box = (w, h, d, x, y, z, m) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); g.add(b); };
-  for (const s of [-1, 1]) {
-    box(0.4, 0.07, 1.02, s * 0.27, 0.035, 0.12, mud);
-    box(0.36, 0.26, 0.95, s * 0.27, 0.2, 0.12, leather);
-    box(0.36, 0.85, 0.42, s * 0.27, 0.6, -0.16, leather);
-  }
-  return shadows(g);
-}
-
 // a birthday cake with its candles lit
 function cake(THREE) {
   const g = new THREE.Group(), flames = [];
@@ -472,7 +458,13 @@ export const CRAZINESS = [
   {
     name: 'craziness22', cam: 'foyer', intensity: 1, at: [138, 678],
     note: 'A pair of muddy boots by the front door, toes to the wall.',
-    ...appears(ctx => { const b = boots(ctx.THREE); b.position.set(ctx.X(138), ctx.FLOOR, ctx.Z(678)); b.rotation.y = -Math.PI / 2; return b; })
+    ...appears(ctx => {
+      const mud = new ctx.THREE.MeshStandardMaterial({ color: 0x3d3122, roughness: 1 });
+      const b = ctx.shoePair(new ctx.THREE.MeshStandardMaterial({ color: 0x2c1f15, roughness: 0.75 }), mud, { len: 1.05, boot: true });
+      b.position.set(ctx.X(138), ctx.FLOOR, ctx.Z(678));
+      b.rotation.y = -Math.PI / 2;
+      return shadows(b);
+    })
   },
   {
     name: 'craziness23', cam: 'foyer', intensity: 3, at: [142, 582],

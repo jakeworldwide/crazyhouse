@@ -1041,16 +1041,28 @@ function livingRoom() {
    square arms at both ends, and a couple of throw pillows. */
 function sofa() {
   const seat = 1.45, base = 0.85, backTop = 2.65, lean = 0.12;
-  const cushion = (x0, x1, y0, y1) => block(x0 + 1, x1 - 1, y0 + 1, y1 - 1, seat, base);   // small gaps so each one reads
-  // a back cushion resting on the seat, leaning back a touch
+  // a seat cushion: rounded edges, a little puffed up in the middle (small gaps so each one reads)
+  const cushion = (x0, x1, y0, y1) => softSlab(X(x1 - 1) - X(x0 + 1), seat - base, Z(y1 - 1) - Z(y0 + 1), 0.11,
+    (X(x0) + X(x1)) / 2, FLOOR + (seat + base) / 2, (Z(y0) + Z(y1)) / 2, 0.16, { corner: 0.14, flatBottom: true });
+  // a back cushion resting on the seat, leaning back a touch, plump on the side you lean on
   const backCushion = (x0, x1, y0, y1, alongWall) => {
     const w = X(x1) - X(x0), d = Z(y1) - Z(y0), h = backTop - seat;
-    return solid(new THREE.BoxGeometry(w, h, d), [(X(x0) + X(x1)) / 2, FLOOR + seat + h / 2, (Z(y0) + Z(y1)) / 2],
-      alongWall ? [0, 0, lean] : [lean, 0, 0]);
+    const c = alongWall ? softSlab(h, w, d, 0.12, 0, 0, 0, 0.22, { corner: 0.14 }) : softSlab(w, d, h, 0.12, 0, 0, 0, 0.22, { corner: 0.14 });
+    c.position.set((X(x0) + X(x1)) / 2, FLOOR + seat + h / 2, (Z(y0) + Z(y1)) / 2);
+    if (alongWall) c.rotation.z = Math.PI / 2 + lean; else c.rotation.x = -Math.PI / 2 + lean;
+    return c;
   };
   // a square arm
   const arm = (x0, x1, y0, y1) => [block(x0, x1, y0, y1, 2.25)];
-  const pillow = (cx, cy, mat, rot) => tint(solid(new THREE.BoxGeometry(0.75, 0.75, 0.22), [X(cx), FLOOR + seat + 0.42, Z(cy)], rot), mat);
+  const pillow = (cx, cy, mat, rot) => {
+    const p = softSlab(0.75, 0.24, 0.75, 0.08, 0, 0, 0, 0.6, { corner: 0.17 });
+    p.rotation.x = Math.PI / 2;                                                  // stood up
+    const g = new THREE.Group();
+    g.add(p);
+    g.position.set(X(cx), FLOOR + seat + 0.44, Z(cy));
+    g.rotation.set(...rot);
+    return tint(g, mat);
+  };
   return named('sofa',
     block(342, 405, 318, 535, base), block(405, 530, 478, 535, base),       // skirted base
     block(322, 342, 300, 555, 2.7), block(342, 548, 535, 555, 2.7),         // back frame
@@ -1069,8 +1081,9 @@ function sofa() {
 function throwBlanket() {
   const zc = Z(435), width = 2.4;
   // its line in profile (x across the sofa, y up), from the back cushion to the hem
-  const profile = new THREE.CatmullRomCurve3([[X(338), FLOOR + 2.72], [X(352), FLOOR + 2.62], [X(361), FLOOR + 1.95], [X(366), FLOOR + 1.5],
-    [X(392), FLOOR + 1.49], [X(405) + 0.1, FLOOR + 1.36], [X(405) + 0.17, FLOOR + 0.9], [X(405) + 0.2, FLOOR + 0.5]].map(([x, y]) => new THREE.Vector3(x, y, 0)));
+  // (kept a hair off the cushions all the way, so they never poke through it)
+  const profile = new THREE.CatmullRomCurve3([[X(337), FLOOR + 2.8], [X(352), FLOOR + 2.74], [X(363) + 0.06, FLOOR + 2.1], [X(366) + 0.08, FLOOR + 1.6],
+    [X(392), FLOOR + 1.58], [X(405) + 0.12, FLOOR + 1.44], [X(405) + 0.22, FLOOR + 0.92], [X(405) + 0.26, FLOOR + 0.5]].map(([x, y]) => new THREE.Vector3(x, y, 0)));
   const n = 40, m = 12, pos = [], uv = [], index = [];
   for (let i = 0; i <= n; i++) {
     const p = profile.getPoint(i / n), hang = THREE.MathUtils.smoothstep(i / n, 0.7, 1);
@@ -2082,7 +2095,7 @@ function computerDesk() {
   };
   let seed = 31;
   const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const tray = [x0 + 0.45, zc - 1.6];
+  const tray = [x0 + 0.8, zc - 2.25];                                                // clear of the monitors
   parts.push(
     say("Both monitors are still on. On the black one, someone's typed a file out to the screen. The last line says: it is in the house.",
       crt(zc - 0.95, 0.12, dos), crt(zc + 0.65, -0.12, desktop)),
@@ -2091,8 +2104,15 @@ function computerDesk() {
     box(0.75, 0.01, 0.65, x0 + 0.45, top + 0.005, zc + 1.75, MAT.denim),               // mousepad
     box(0.32, 0.1, 0.2, x0 + 0.42, top + 0.06, zc + 1.72, beige, [0, 0.2, 0]),         // mouse
     say("The ashtray is overflowing, and one of the butts is still warm.",
-      cyl(0.28, 0.06, tray[0], top + 0.03, tray[1], surface(0x3a4a48, 0.3), null, 14),   // the ashtray
-      ...Array.from({ length: 14 }, (_, k) => butt(tray[0] + (rand() - 0.5) * 0.34, top + 0.05 + (k > 8 ? 0.04 : 0), tray[1] + (rand() - 0.5) * 0.34, rand() * 6))),   // overflowing
+      // a little glass cup of an ashtray, grey ash inside, butts sticking up out of it
+      tint(solid(new THREE.CylinderGeometry(0.15, 0.12, 0.13, 18, 1, true), [tray[0], top + 0.065, tray[1]]), surface(0x3a4a48, 0.25, THREE.DoubleSide)),
+      tint(solid(new THREE.CylinderGeometry(0.12, 0.12, 0.015, 18), [tray[0], top + 0.008, tray[1]]), surface(0x3a4a48, 0.25)),
+      tint(solid(new THREE.CircleGeometry(0.14, 18).rotateX(-Math.PI / 2), [tray[0], top + 0.1, tray[1]]), surface(0x6e6a64, 1)),
+      ...Array.from({ length: 7 }, (_, k) => {
+        const a = k / 7 * Math.PI * 2 + rand(), d = 0.03 + rand() * 0.06, b = butt(tray[0] + Math.cos(a) * d, top + 0.12, tray[1] + Math.sin(a) * d, rand() * 6);
+        b.rotation.x = 0.5 + rand() * 0.6;                                          // leaning up out of the ash
+        return b;
+      })),
     butt(x0 + 0.9, top, zc - 0.2, 1.1), butt(x0 + 0.3, top, zc + 1.1, 2.6), butt(x0 + 0.6, top, z0 + 0.3, 0.4),
     butt(x0 + 0.75, top, zc - 1.15, 2.2), butt(x0 + 0.2, top, zc - 1.9, 0.7), butt(x0 + 1.25, top, zc + 1.6, 1.9),
     butt(x0 - 0.9, FLOOR, zc - 0.3, 0.3), butt(x0 - 0.15, FLOOR, zc + 1.9, 1.4), butt(x0 + 0.2, FLOOR, z0 - 0.3, 2.8),
@@ -2972,27 +2992,47 @@ function van() {
   /* The side: one outline, the profile of the whole van (the boxy back,
      the windscreen and the short sloping hood, the wheel arches cut out
      of the bottom), with the cab door's window cut out of it. */
+  // the cargo section's side, behind the cab doors: the back wheel arch cut out of the bottom
   const profile = () => {
     const s = new THREE.Shape();
     s.moveTo(0, 1.3);
-    s.lineTo(0, VAN_EAVE);
-    s.lineTo(-12.32, VAN_EAVE);                                                   // the rounded roof sits on top (roofSection)
-    s.lineTo(-13.55, 4.6);
-    s.quadraticCurveTo(-13.62, 4.53, -13.75, 4.52);
-    s.lineTo(-16.15, 4.05);
-    s.quadraticCurveTo(-16.45, 4.0, -16.45, 3.75);
-    s.lineTo(-16.45, 1.55);
-    s.quadraticCurveTo(-16.45, 1.3, -16.32, 1.3);
-    s.absarc(-14.9, 1.3, 1.42, Math.PI, 0, true);                                // front wheel arch
+    s.lineTo(0, VAN_EAVE);                                                        // the rounded roof sits on top (roofSection)
+    s.lineTo(-10.31, VAN_EAVE);
+    s.lineTo(-10.31, 1.3);
     s.lineTo(-5.47, 1.3);
     s.absarc(-4.05, 1.3, 1.42, Math.PI, 0, true);                                // back wheel arch
     s.lineTo(0, 1.3);
-    s.holes.push(windowHole());
     return s;
   };
-  const windowHole = () => {
-    const w = new THREE.Path();
-    w.moveTo(-13.14, 4.75); w.lineTo(-10.5, 4.75); w.lineTo(-10.5, 6.1); w.lineTo(-12.17, 6.1); w.lineTo(-13.14, 4.75);
+  /* The nose: hood, front and front wheel arches as one side profile run
+     across the van with its edges rounded over (the bevel), so the corners
+     and the hood's edges are curved, not square. The shape is drawn a bevel
+     smaller all round; the bevel grows it back out. */
+  const nose = () => {
+    const r = 0.2, R = 1.42 + r, cx = -14.9, cyA = 1.3;
+    const yAt = x => cyA + Math.sqrt(R * R - (x - cx) ** 2);                     // where the arch is under x
+    const sh = new THREE.Shape();
+    sh.moveTo(-13.62, yAt(-13.62));
+    sh.lineTo(-13.62, 4.33);                                                      // up the back, under the windscreen
+    sh.lineTo(-15.95, 3.88);                                                      // the hood, sloping down
+    sh.quadraticCurveTo(-16.25, 3.83, -16.25, 3.6);
+    sh.lineTo(-16.25, yAt(-16.25));                                               // the front
+    sh.absarc(cx, cyA, R, Math.atan2(yAt(-16.25) - cyA, -16.25 - cx), Math.atan2(yAt(-13.62) - cyA, -13.62 - cx), true);   // over the wheel
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: 6.6 - 2 * r, bevelEnabled: true, bevelThickness: r, bevelSize: r, bevelSegments: 3, curveSegments: 14 });
+    geo.translate(0, 0, -(6.6 - 2 * r) / 2);
+    return tint(solid(geo), paint);
+  };
+  // a cab door's outline (hinged at its front edge, x = 0 there) and its window
+  const DOOR_X = -13.37;
+  const doorShape = () => {
+    const d = new THREE.Shape(), at = x => x - DOOR_X;
+    d.moveTo(at(-13.37), 1.33); d.lineTo(at(-10.35), 1.33); d.lineTo(at(-10.35), 6.27); d.lineTo(at(-12.34), 6.27); d.lineTo(at(-13.37), 4.85);
+    d.holes.push(doorWindow());
+    return d;
+  };
+  const doorWindow = () => {
+    const w = new THREE.Path(), at = x => x - DOOR_X;
+    w.moveTo(at(-13.14), 4.75); w.lineTo(at(-10.55), 4.75); w.lineTo(at(-10.55), 6.1); w.lineTo(at(-12.17), 6.1); w.lineTo(at(-13.14), 4.75);
     return w;
   };
   /* The roof's cross-section: the sides curve over into it instead of
@@ -3022,18 +3062,33 @@ function van() {
   const sides = [-1, 1].map(s => {
     const geo = new THREE.ExtrudeGeometry(profile(), { depth: 0.1, bevelEnabled: false });
     geo.translate(0, 0, s * 3.25 - 0.05);
-    const win = new THREE.ShapeGeometry(new THREE.Shape(windowHole().getPoints()));
-    win.translate(0, 0, s * 3.25);
-    return [tint(solid(geo), paint), glassy(new THREE.Mesh(win, MAT.glass))];
-  }).flat();
+    return tint(solid(geo), paint);
+  });
+
+  /* The cab doors, driver's and passenger's: they open (E), swinging out
+     on their front edges, window, handle and the trim inside going with them.
+     The thin gap round each one is the door line. */
+  const cabDoor = (s, name) => {
+    const geo = new THREE.ExtrudeGeometry(doorShape(), { depth: 0.1, bevelEnabled: false });
+    geo.translate(0, 0, -0.05);
+    const win = new THREE.ShapeGeometry(new THREE.Shape(doorWindow().getPoints()));
+    const g = named(name,
+      tint(solid(geo), paint),
+      glassy(new THREE.Mesh(win, MAT.glass)),
+      bx(0.32, 0.08, 0.04, -10.85 - DOOR_X, 4.45, s * 0.07, trim),             // handle
+      bx(2.85, 1.9, 0.06, 1.55, 3.55, -s * 0.09, dash),                          // the trim panel inside
+      bx(0.6, 0.06, 0.12, 1.9, 4.2, -s * 0.15, dash));                           // armrest
+    g.position.set(DOOR_X, 0, s * 3.25);
+    openable(g, t => { g.rotation.y = -s * t * 1.15; });
+    return g;
+  };
 
   const body = [
     ...sides,
-    // the hood, its rounded nose, the flat front, and the dark strip where the wipers sit
-    bx(2.45, 0.08, 6.5, -14.95, 4.285, 0, paint, [0, 0, 0.193]),
-    bx(0.43, 0.08, 6.5, -16.3, 3.9, 0, paint, [0, 0, Math.PI / 4]),
-    bx(0.06, 2.2, 6.44, -16.42, 2.65, 0, paint),
-    bx(0.3, 0.05, 6.3, -13.62, 4.59, 0, trim, [0, 0, 0.51]),
+    // the nose (hood, front, front arches), the panel under the grille, and the dark strip where the wipers sit
+    nose(),
+    bx(0.32, 0.55, 4.9, -16.27, 2.18, 0, paint),
+    bx(0.3, 0.05, 6.3, -13.55, 4.6, 0, trim, [0, 0, 0.51]),
     bar([-13.42, 4.76, -2.1], [-13.27, 4.97, -0.35], 0.05, 0.05, trim),
     bar([-13.42, 4.76, 0.35], [-13.27, 4.97, 2.1], 0.05, 0.05, trim),
     // the windscreen: glass in a black rubber surround, white pillars either side
@@ -3057,8 +3112,8 @@ function van() {
     cy(0.8, 0.04, ax, 1.2, s * 3.22, hub, ROUND, 20),
     cy(0.6, 0.02, ax, 1.2, s * 3.245, trim, ROUND, 18),
     cy(0.28, 0.06, ax, 1.2, s * 3.26, hub, ROUND, 12),
-    tint(solid(new THREE.CylinderGeometry(1.42, 1.42, 1.08, 18, 1, true, Math.PI / 2, Math.PI), [ax, 1.3, s * 2.75], ROUND), liner),
-    tint(solid(new THREE.CircleGeometry(1.42, 18, 0, Math.PI), [ax, 1.3, s * 2.21]), liner)
+    tint(solid(new THREE.CylinderGeometry(ax < -10 ? 1.4 : 1.42, ax < -10 ? 1.4 : 1.42, 1.08, 18, 1, true, Math.PI / 2, Math.PI), [ax, 1.3, s * 2.75], ROUND), liner),
+    tint(solid(new THREE.CircleGeometry(ax < -10 ? 1.4 : 1.42, 18, 0, Math.PI), [ax, 1.3, s * 2.21]), liner)
   ]));
 
   // the front: chrome-ringed grille with its bars, the blue oval, headlights, amber corners, the big chrome bumper
@@ -3067,14 +3122,14 @@ function van() {
     bx(0.05, 0.85, 2.4, -16.49, 2.95, 0, trim),
     ...[2.72, 2.95, 3.18].map(y => bx(0.03, 0.06, 2.4, -16.52, y, 0, MAT.chrome)),
     (() => {
-      const o = cy(0.21, 0.04, -16.47, 3.6, 0, blue, [0, 0, Math.PI / 2]);
+      const o = cy(0.21, 0.04, -16.47, 3.5, 0, blue, [0, 0, Math.PI / 2]);
       o.scale.set(0.45, 1, 1);                                                    // flattened into an oval
       return o;
     })(),
     ...[-1, 1].flatMap(s => [
       bx(0.04, 0.72, 1.12, -16.46, 3.0, s * 1.98, MAT.chrome),
       bx(0.05, 0.6, 1.0, -16.49, 3.0, s * 1.98, lens),
-      bx(0.36, 0.55, 0.32, -16.3, 3.0, s * 3.15, amber),
+      bx(0.26, 0.5, 0.42, -16.36, 3.0, s * 3.0, amber),
       bx(0.42, 0.68, 0.35, -16.52, 1.76, s * 3.3, MAT.chrome, [0, -s * 0.5, 0])
     ]),
     bx(0.5, 0.68, 6.4, -16.68, 1.76, 0, MAT.chrome),
@@ -3101,7 +3156,6 @@ function van() {
     ...[-1, 1].flatMap(s => [
       bar([-13.1, 4.95, s * 3.3], [-13.0, 5.05, s * 3.78], 0.08, 0.08, trim),
       bx(0.14, 0.9, 0.5, -12.95, 5.25, s * 3.98, trim),
-      bx(0.32, 0.08, 0.04, -10.85, 4.45, s * 3.32, trim),
       small(bx(0.28, 0.12, 0.03, -15.95, 3.42, s * 3.315, amber)),
       small(bx(0.22, 0.12, 0.03, -0.45, 2.35, s * 3.315, red))
     ]),
@@ -3146,8 +3200,7 @@ function van() {
       bx(1.35, 0.5, 1.7, -11.2, 3.08, s * 1.6, fabric),
       bx(1.0, 0.85, 1.2, -11.2, 2.42, s * 1.6, trim),
       bx(0.32, 2.35, 1.7, -10.52, 4.5, s * 1.6, fabric, [0, 0, -0.14]),
-      bx(0.28, 0.55, 0.95, -10.38, 5.95, s * 1.6, fabric, [0, 0, -0.14]),
-      bx(3.0, 2.0, 0.06, -11.9, 3.7, s * 3.15, dash)
+      bx(0.28, 0.55, 0.95, -10.38, 5.95, s * 1.6, fabric, [0, 0, -0.14])
     ]),
     say("The keys are in the ignition. You always leave them there, in case you need to get out of here fast.",
       small(bx(0.06, 0.12, 0.05, -12.55, 4.0, 0.95, MAT.chrome)),
@@ -3239,7 +3292,8 @@ function van() {
   light.target.position.set(-6.8, VAN.floor, 0.4);
 
   const g = named('van', ...body, ...wheels, ...front, ...back, ...sideBits, ...inside, ...desk,
-    overhead, chair, vanScreen, rearDoor(1, 'van-door-left'), rearDoor(-1, 'van-door-right'), light, light.target);
+    overhead, chair, vanScreen, rearDoor(1, 'van-door-left'), rearDoor(-1, 'van-door-right'),
+    cabDoor(1, 'van-door-driver'), cabDoor(-1, 'van-door-passenger'), light, light.target);
   g.position.set(VAN.x, groundHeight(VAN.x, VAN.z), VAN.z);
   g.rotation.z = VAN.tilt;
   return g;
@@ -3868,20 +3922,59 @@ function clothesPile(x, z, mats) {
   });
 }
 
-// a pair of shoes: each a low rounded block with a pale sole
-function shoes(x, z, turn, mat, sole = PROP.white, len = 0.95) {
-  const one = dx => {
-    const g = new THREE.Group();
-    g.add(box(0.36, 0.08, len, 0, 0.04, 0, sole),
-      tint(solid(new THREE.SphereGeometry(0.5, 10, 6).scale(0.36, 0.3, len), [0, 0.08, 0.05]), mat));
-    g.position.set(dx, 0, 0);
-    return g;
-  };
-  const g = new THREE.Group();
-  g.add(one(-0.22), one(0.22));
+// a pair of shoes (or boots) on the floor, toes along turn
+function shoes(x, z, turn, mat, sole = PROP.white, len = 0.95, boot = false) {
+  const g = shoePair(mat, sole, { len, boot });
   g.position.set(x, FLOOR, z);
   g.rotation.y = turn;
   return g;
+}
+
+/* A pair of shoes, toes toward +z, sitting on y = 0: a real footprint of a
+   sole (wide at the ball, pinched at the waist, round at the heel), an
+   upper that's low at the toe and rises to the heel, the dark opening you
+   put your foot in, and laces; boots get a shaft up the ankle instead.
+   (craziness-list.js uses it too, through ctx.) */
+export function shoePair(mat, sole, { len = 1, boot = false } = {}) {
+  const dark = surface(0x0e0c0b, 1), lace = surface(0xd8d2c4, 0.9);
+  const one = (dx, side) => {
+    const g = new THREE.Group(), L = len / 2, w = 0.17;
+    const fp = new THREE.Shape(), sx = side;                                   // (the left one's the right one mirrored)
+    fp.moveTo(0, -L);
+    fp.bezierCurveTo(sx * w * 0.9, -L, sx * w * 0.95, -L * 0.55, sx * w * 0.8, -L * 0.2);
+    fp.bezierCurveTo(sx * w * 0.7, L * 0.1, sx * w * 1.12, L * 0.3, sx * w * 1.06, L * 0.6);
+    fp.bezierCurveTo(sx * w, L * 0.97, sx * w * 0.35, L, 0, L);
+    fp.bezierCurveTo(-sx * w * 0.45, L, -sx * w * 0.95, L * 0.9, -sx * w, L * 0.6);
+    fp.bezierCurveTo(-sx * w * 1.05, L * 0.3, -sx * w * 0.75, L * 0.1, -sx * w * 0.82, -L * 0.2);
+    fp.bezierCurveTo(-sx * w * 0.95, -L * 0.55, -sx * w * 0.9, -L, 0, -L);
+    const sg = new THREE.ExtrudeGeometry(fp, { depth: 0.035, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.012, bevelSegments: 2, curveSegments: 10 });
+    sg.rotateX(Math.PI / 2).translate(0, 0.05, 0);
+    // the upper: half a ball squeezed into a shoe, low at the toe, up at the heel
+    const up = new THREE.SphereGeometry(0.5, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), p = up.attributes.position;
+    const height = zz => 0.15 + 0.15 * THREE.MathUtils.smoothstep(-zz, -L * 0.35, L * 0.55);
+    for (let i = 0; i < p.count; i++) {
+      const zz = p.getZ(i) * 2 * L * 0.95, wide = zz > 0 ? 1.02 : 0.86;
+      p.setXYZ(i, p.getX(i) * 2 * w * wide, 0.045 + p.getY(i) * 2 * height(zz), zz);
+    }
+    up.computeVertexNormals();
+    g.add(tint(solid(sg), sole), tint(solid(up), mat));
+    if (boot) {
+      g.add(tint(solid(new THREE.CylinderGeometry(0.15, 0.165, 0.5, 18).scale(1, 1, 1.3), [0, 0.5, -L * 0.42]), mat),
+        tint(solid(new THREE.CircleGeometry(0.14, 16).scale(1, 1.3, 1).rotateX(-Math.PI / 2), [0, 0.752, -L * 0.42]), dark));
+    } else {
+      g.add(tint(solid(new THREE.CircleGeometry(1, 16).scale(0.11, 0.2, 1).rotateX(-Math.PI / 2), [0, 0.045 + 2 * height(-L * 0.45) * 0.97, -L * 0.45]), dark));
+      for (let k = 0; k < 4; k++) {                                              // laces across the tongue
+        const zz = -L * 0.12 + k * L * 0.13;
+        g.add(tint(solid(new THREE.BoxGeometry(0.17, 0.012, 0.025), [0, 0.04 + 2 * height(zz) * 0.92, zz], [-0.3, 0, 0]), lace));
+      }
+    }
+    g.position.x = dx;
+    g.rotation.y = side * 0.06;                                                  // toes splayed a touch
+    return g;
+  };
+  const pair = new THREE.Group();
+  pair.add(one(-0.2, -1), one(0.2, 1));
+  return pair;
 }
 
 /* Clutter, room by room. Each room's clutter is one group, so it's drawn
@@ -4017,7 +4110,7 @@ function clutter() {
   const foyer = named('foyer-clutter',
     say("Two pairs of shoes by the door. The boots are caked in fresh mud, and the mud is still wet.",
       box(0.95, 0.05, 1.5, X(140), FLOOR + 0.025, Z(722), PROP.rubber),
-      shoes(X(140) - 0.05, Z(700), Math.PI / 2, PROP.rubber, PROP.rubber, 1.0),
+      shoes(X(140) - 0.05, Z(700), Math.PI / 2, surface(0x2a2420, 0.7), PROP.rubber, 1.0, true),
       shoes(X(140) + 0.05, Z(740), Math.PI / 2 + 0.2, MAT.wood, PROP.rubber, 1.05)),
     say("A bowl for keys. The keys are in it. Whoever lives here never left.",
       cyl(0.28, 0.1, X(185), FLOOR + 1.6 + 0.05, Z(762), PROP.celadon, null, 14, 0.36),

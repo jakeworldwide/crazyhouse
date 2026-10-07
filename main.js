@@ -4,11 +4,11 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { buildWorld, ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed } from './world.js?v=52';
+import { buildWorld, ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed, shoePair } from './world.js?v=53';
 import { buildPVS } from './pvs.js?v=3';
-import { createEmp } from './emp.js?v=14';
-import { CAMS, camAt } from './cams.js?v=18';
-import { createGhoul } from './ghoul.js?v=20';
+import { createEmp } from './emp.js?v=15';
+import { CAMS, camAt } from './cams.js?v=19';
+import { createGhoul } from './ghoul.js?v=21';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
@@ -16,7 +16,7 @@ import { createAnalogPass } from './analog.js?v=38';
 import { createOsd } from './osd.js?v=5';
 import { createSounds } from './sound.js?v=5';
 import { createCraziness, WARNING, OVERLOAD } from './craziness.js?v=5';
-import { CRAZINESS } from './craziness-list.js?v=11';
+import { CRAZINESS } from './craziness-list.js?v=12';
 
 
 const $ = id => document.getElementById(id);
@@ -333,7 +333,7 @@ function setup() {
   setupMonitor();
   // craziness: the engine (craziness.js) and what can go crazy (craziness-list.js)
   craziness = createCraziness({ list: CRAZINESS, hour: HOUR, ctx: {
-    THREE, scene, X, Z, FLOOR, walkHeight,
+    THREE, scene, X, Z, FLOOR, walkHeight, shoePair,
     find: name => scene.getObjectByName(name),
     cam: name => CAMS.find(c => c.name === name),
     add: obj => scene.add(obj),
@@ -372,7 +372,7 @@ function setup() {
       isNight: () => night, camIndex: () => camIndex
     };
     window.crazyhouse = api;
-    import('./debug.js?v=35').then(m => m.createDebug(api));
+    import('./debug.js?v=36').then(m => m.createDebug(api));
   }
 
   return true;
