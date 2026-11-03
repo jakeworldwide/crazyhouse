@@ -5,7 +5,7 @@
 
 import * as THREE from './vendor/three-r186/three.module.js';
 import { ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed, shoePair } from './world.js?v=54';
-import { loadHouse } from './house.js?v=5';
+import { loadHouse } from './house.js?v=6';
 import { buildPVS } from './pvs.js?v=3';
 import { createEmp } from './emp.js?v=16';
 import { CAMS, camAt } from './cams.js?v=20';

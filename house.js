@@ -36,7 +36,7 @@ export async function loadHouse({ url = 'house.json', onProgress } = {}) {
   }
 
   // the models, all at once; then each into its place, in the level's order
-  const loader = new GLTFLoader();
+  const loader = new GLTFLoader().register(pictureStraightFromFile);
   let done = 0;
   const loaded = await Promise.all(level.items.map(async it => {
     const gltf = await loader.loadAsync(it.model);
@@ -61,7 +61,30 @@ export async function loadHouse({ url = 'house.json', onProgress } = {}) {
   return finish(scene, level);
 }
 
+/* The pictures inside a .glb. The loader normally turns each one into a
+   blob: URL and loads that, but the site's security rules (CSP) don't allow
+   blob: URLs, so on the real site every picture quietly failed and things
+   came out blank. This reads them straight out of the file's bytes instead. */
+function pictureStraightFromFile(parser) {
+  const usual = parser.loadImageSource.bind(parser);
+  parser.loadImageSource = (i, loader) => {
+    const src = parser.json.images[i];
+    if (src.bufferView === undefined || typeof createImageBitmap === 'undefined') return usual(i, loader);
+    if (parser.sourceCache[i]) return parser.sourceCache[i].then(t => t.clone());
+    return parser.sourceCache[i] = parser.getDependency('bufferView', src.bufferView)
+      .then(bytes => createImageBitmap(new Blob([bytes], { type: src.mimeType }), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' }))
+      .then(image => {
+        const tex = new THREE.Texture(image);
+        tex.needsUpdate = true;
+        tex.userData.mimeType = src.mimeType;
+        return tex;
+      });
+  };
+  return { name: 'picture-straight-from-file' };
+}
+
 // what the files can't hold, put back (it's said in each thing's extras)
+const standard = new WeakMap();
 function fixUp(model) {
   model.traverse(o => {
     o.name = o.userData.name || '';                                      // (the loader names unnamed things; they weren't)
@@ -69,6 +92,12 @@ function fixUp(model) {
     if (o.userData.hidden) { o.visible = false; delete o.userData.hidden; }
     if (o.userData.layer) o.layers.mask = o.userData.layer;
     if (!o.material) return;
+    // a bumpy material comes in as the heavier "physical" kind; nothing here uses its extras, so back to standard
+    const p = o.material;
+    if (p.isMeshPhysicalMaterial && !p.transmission && !p.clearcoat && !p.sheen && !p.iridescence) {
+      if (!standard.has(p)) standard.set(p, new THREE.MeshStandardMaterial().copy(p));
+      o.material = standard.get(p);
+    }
     for (const m of [].concat(o.material)) {
       if (m.userData.side === 'back') m.side = THREE.BackSide;
       if (m.userData.offset) { m.polygonOffset = true; m.polygonOffsetFactor = 1; m.polygonOffsetUnits = 1; }
