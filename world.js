@@ -63,10 +63,13 @@ export function roomAt(x, z) {
 /* A surface that light falls on. Faces are pushed back a hair, so
    anything drawn flat against them (labels, lines) shows cleanly. */
 export function surface(color, roughness = 0.9, side = THREE.FrontSide) {
-  return new THREE.MeshStandardMaterial({
+  const m = new THREE.MeshStandardMaterial({
     color, roughness, metalness: 0, side,
     polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1
   });
+  m.userData.offset = 1;                          // (model files can't say this or BackSide; house.js puts them back)
+  if (side === THREE.BackSide) m.userData.side = 'back';
+  return m;
 }
 
 /* Flat colours, no texture images, so it costs nothing extra to draw. */
@@ -316,84 +319,14 @@ export function captureReflections(renderer, scene) {
   if (heavens) heavens.visible = true;
 }
 
-/* A real mirror. While a cam can see it, the scene is drawn a second
-   time from the cam's reflection, into a picture the mirror shows (the
-   same trick as three.js's Reflector). It costs nothing while no cam is
-   looking at it. ghoul1 lives on a layer the reflection doesn't draw,
-   so he has no reflection. Like a vampire. */
+/* A real mirror: a plane here, made to reflect by components.js. */
 function mirror(u0, u1, y0, y1, z) {
-  const target = new THREE.WebGLRenderTarget(1024, 576, { type: THREE.HalfFloatType, samples: 4 });
-  const textureMatrix = new THREE.Matrix4();
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(u1 - u0, y1 - y0), new THREE.ShaderMaterial({
-    uniforms: { map: { value: target.texture }, textureMatrix: { value: textureMatrix }, tint: { value: new THREE.Color(0xd4dade) } },
-    vertexShader: `
-      uniform mat4 textureMatrix;
-      varying vec4 vUv;
-      void main() {
-        vUv = textureMatrix * vec4(position, 1.0);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }`,
-    fragmentShader: `
-      uniform sampler2D map;
-      uniform vec3 tint;
-      varying vec4 vUv;
-      void main() {
-        gl_FragColor = vec4(texture2DProj(map, vUv).rgb * tint, 1.0);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }`
-  }));
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(u1 - u0, y1 - y0), new THREE.MeshBasicMaterial({ color: 0xd4dade }));
   mesh.position.set((u0 + u1) / 2, (y0 + y1) / 2, z);
   mesh.rotation.y = Math.PI;                      // facing north, into the room
   mesh.layers.set(GLASS_LAYER);                   // so window snapshots and the ghost pass skip it
   mesh.userData.keep = mesh.userData.noShadow = true;
-
-  const view = new THREE.PerspectiveCamera();
-  view.layers.set(0);
-  view.layers.enable(GLASS_LAYER);
-  view.layers.enable(CULL_LAYER);                 // the mirror shows what's behind the cam, culled or not
-  const at = new THREE.Vector3(), eye = new THREE.Vector3(), normal = new THREE.Vector3();
-  const look = new THREE.Vector3(), aim = new THREE.Vector3(), turn = new THREE.Matrix4();
-  const plane = new THREE.Plane(), clip = new THREE.Vector4(), q = new THREE.Vector4();
-
-  mesh.onBeforeRender = (renderer, scene, camera) => {
-    at.setFromMatrixPosition(mesh.matrixWorld);
-    eye.setFromMatrixPosition(camera.matrixWorld);
-    turn.extractRotation(mesh.matrixWorld);
-    normal.set(0, 0, 1).applyMatrix4(turn);
-    look.subVectors(at, eye);
-    if (look.dot(normal) > 0) return;             // looking at its back
-    // the camera, mirrored through the glass
-    look.reflect(normal).negate().add(at);
-    turn.extractRotation(camera.matrixWorld);
-    aim.set(0, 0, -1).applyMatrix4(turn).add(eye);
-    aim.subVectors(at, aim).reflect(normal).negate().add(at);
-    view.position.copy(look);
-    view.up.set(0, 1, 0).applyMatrix4(turn).reflect(normal);
-    view.lookAt(aim);
-    view.far = camera.far;
-    view.updateMatrixWorld();
-    view.projectionMatrix.copy(camera.projectionMatrix);
-    textureMatrix.set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1)
-      .multiply(view.projectionMatrix).multiply(view.matrixWorldInverse).multiply(mesh.matrixWorld);
-    // move the near plane onto the mirror, so the wall and yard behind it don't get drawn
-    plane.setFromNormalAndCoplanarPoint(normal, at).applyMatrix4(view.matrixWorldInverse);
-    clip.set(plane.normal.x, plane.normal.y, plane.normal.z, plane.constant);
-    const e = view.projectionMatrix.elements;
-    q.set((Math.sign(clip.x) + e[8]) / e[0], (Math.sign(clip.y) + e[9]) / e[5], -1, (1 + e[10]) / e[14]);
-    clip.multiplyScalar(2 / clip.dot(q));
-    e[2] = clip.x; e[6] = clip.y; e[10] = clip.z + 1; e[14] = clip.w;
-
-    mesh.visible = false;
-    const was = renderer.getRenderTarget(), shadows = renderer.shadowMap.autoUpdate;
-    renderer.shadowMap.autoUpdate = false;        // the shadows are already drawn this frame
-    renderer.setRenderTarget(target);
-    renderer.state.buffers.depth.setMask(true);
-    renderer.render(scene, view);
-    renderer.setRenderTarget(was);
-    renderer.shadowMap.autoUpdate = shadows;
-    mesh.visible = true;
-  };
+  mesh.userData.component = { type: 'mirror' };  // (components.js does the reflecting)
   return mesh;
 }
 
@@ -1225,6 +1158,7 @@ function fire() {
   glass.layers.set(GLASS_LAYER);
   glass.userData.keep = glass.userData.noShadow = true;
   const inside = new THREE.PointLight(0xff6a20, 0.9, 2.0, 2);              // lights the firebrick, nothing else
+  inside.name = 'fire-inside-light';
   inside.position.set(cx, floor + 0.9, cz);
   const room = new THREE.SpotLight(0xff8c3a, FIRE, 16, 1.05, 0.8, 2);
   room.name = 'fire-light';
@@ -1243,15 +1177,9 @@ function fire() {
     log(1.9, cx, floor + 0.5, cz, -0.45),                                   // one on the other
     log(1.4, cx, floor + 0.36, cz + 0.55, 0.05, 0.14),                      // and one at the back
     inside, room, room.target);
-  let t = 0;
-  g.userData.tick = dt => {
-    t += dt;
-    const f = 1 + 0.08 * Math.sin(t * 2.1) + 0.06 * Math.sin(t * 5.3 + 1) + 0.04 * Math.sin(t * 9.7 + 2);
-    room.intensity = FIRE * f;
-    inside.intensity = 0.9 * f;
-    tex.bark.color.setScalar(0.8 + 0.25 * f);
-    tex.coals.color.setScalar(0.75 + 0.35 * f);
-  };
+  tex.bark.name = 'fire-bark';
+  tex.coals.name = 'fire-coals';
+  g.userData.component = { type: 'fire', strength: FIRE };                 // it flickers (components.js)
   return g;
 }
 
@@ -1317,8 +1245,7 @@ function pillarLamp() {
   const glassMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
   if (typeof document !== 'undefined') glassMat.map = leadedGlass(); else glassMat.color.set(0x8a6a32);
   glassMat.color.multiplyScalar(1.3);                                        // lit from inside
-  const aura = halo(0.9);
-  if (aura.material) { aura.material.color.set(0xffc27a).multiplyScalar(1.6); aura.scale.set(0.9, 0.9, 1); }   // a warm haze,
+  const aura = halo(0.9, 0xffc27a, 1.6);                                     // a warm haze,
   aura.position.set(x, y + 0.34, z - 0.4);                                   // in the cup, spilling out the top
   const bulb = new THREE.SphereGeometry(0.05, 10, 8);
   bulb.scale(1, 2.2, 1);
@@ -1330,6 +1257,7 @@ function pillarLamp() {
   light.target.position.set(X(440), FLOOR + 1.2, Z(440));
   // and like a torch, it throws light up the pillar and onto the ceiling
   const up = new THREE.SpotLight(LAMP_COLOR, 5, 6, 0.6, 0.8, 2);
+  up.name = 'lamp-pillar-up-light';
   up.position.copy(light.position);
   up.target.position.set(x, CEIL, z - 0.4);
   return named('lamp-pillar',
@@ -1624,15 +1552,7 @@ function fridgeLight() {
   light.position.set(cx, FLOOR + 6.05, zf + 0.5);
   light.target.position.set(cx, FLOOR + 0.6, zf - 3.6);
   const g = named('fridge-glow', light, light.target);
-  let doors = null;
-  g.userData.tick = () => {
-    if (!doors) {
-      let root = g;
-      while (root.parent) root = root.parent;
-      doors = ['fridge-door', 'freezer-door'].map(n => root.getObjectByName(n)).filter(Boolean);
-    }
-    light.intensity = 16 * Math.max(0, ...doors.map(d => Math.min(1, d.userData.open * 3)));
-  };
+  g.userData.component = { type: 'fridgeLight', light: 'fridge-light', doors: ['fridge-door', 'freezer-door'], strength: 16 };
   return g;
 }
 
@@ -3617,6 +3537,7 @@ function pendant(lamps, name, cx, cy, intensity) {
 function pullBulb(lamps, name, cx, cy, intensity) {
   const drop = CEIL - (FLOOR + 6.9);                                       // cord length
   const swing = new THREE.Group();
+  swing.name = name + '-swing';
   swing.position.set(X(cx), CEIL, Z(cy));
   swing.add(
     lines([[[0, 0, 0], [0, -drop, 0]]]),
@@ -3633,17 +3554,7 @@ function pullBulb(lamps, name, cx, cy, intensity) {
   light.shadow.mapSize.set(256, 256);
   swing.add(light);
   const g = named(name, swing);
-  let t = 0, n = 0, root = null;
-  const near = new THREE.Sphere(new THREE.Vector3(X(cx), FLOOR + 4, Z(cy)), 14);
-  g.userData.tick = dt => {
-    t += dt;
-    swing.rotation.z = 0.035 * Math.sin(t * 1.1);
-    swing.rotation.x = 0.02 * Math.sin(t * 0.73 + 1);
-    // only redraw its shadows while the cam can see round here
-    if (!root) { root = g; while (root.parent) root = root.parent; }
-    const view = root.userData.frustum;
-    if (++n % 2 === 0 && (!view || view.intersectsSphere(near))) light.shadow.needsUpdate = true;
-  };
+  g.userData.component = { type: 'sway', swing: name + '-swing', light: name + '-light', near: [X(cx), FLOOR + 4, Z(cy)] };
   return g;
 }
 
@@ -4355,6 +4266,7 @@ function paintings() {
   const size = ART_SHEET, mat = surface(0xffffff, 0.85);
   // a craziness can swap a painting for something else, and put it back (craziness-list.js)
   let repaint = () => {}, restore = () => {};
+  const loads = [];                                                            // the real paintings coming in (the exporter waits for them)
   if (typeof document !== 'undefined') {
     let seed = 77;
     const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -4387,6 +4299,9 @@ function paintings() {
       }
       // a real painting: crop it to the frame's shape round its sitter, shrink it, finish it like the rest
       const photo = new Image();
+      let done;
+      loads.push(new Promise(r => { done = r; }));
+      photo.onerror = () => done();
       photo.onload = () => {
         const [fx, fy, zoom] = PORTRAITS[name], want = slot.lw / slot.lh, iw = photo.width, ih = photo.height;
         let cw = Math.min(iw, ih * want) / zoom, ch = cw / want;
@@ -4396,6 +4311,7 @@ function paintings() {
         s2.drawImage(photo, cx, cy, cw, ch, 0, 0, slot.lw, slot.lh);
         finish(s2, slot);
         mat.map.needsUpdate = true;
+        done();
       };
       photo.src = 'art/portraits/' + name + '.jpg';
     });
@@ -4434,7 +4350,7 @@ function paintings() {
   const frames = { gilt: metal(0x8a6a2e, 0.5), wood: surface(0x2e1e12, 0.6), black: surface(0x121212, 0.5) };
   const widths = { gilt: 0.17, wood: 0.12, black: 0.06 };
   const turn = { 'x+': Math.PI / 2, 'x-': -Math.PI / 2, 'z+': 0, 'z-': Math.PI };
-  const group = named('paintings', ...PAINTINGS.map(([, face, px, py, w, h, cy, frame, text], i) => {
+  const group = named('paintings', ...PAINTINGS.map(([name, face, px, py, w, h, cy, frame, text], i) => {
     const { sx, sy, sw, sh } = slots[i], f = widths[frame];
     const pic = new THREE.PlaneGeometry(w, h), uv = pic.attributes.uv;
     for (let k = 0; k < uv.count; k++)                                         // its own square of the sheet
@@ -4447,10 +4363,16 @@ function paintings() {
     const along = face[0] === 'x', sign = face[1] === '+' ? 1 : -1;
     g.position.set(along ? X(px) + sign * 0.01 : X(px), FLOOR + cy, along ? Z(py) : Z(py) + sign * 0.01);
     g.rotation.y = turn[face];
-    return small(say(text, g));
+    g.children[0].children[0].userData.sheetSlot = { sx: sx / size, sy: sy / size, sw: sw / size, sh: sh / size };   // (where its picture is on the sheet)
+    const p = small(say(text, g));
+    p.name = 'painting-' + name;
+    p.userData.component = { type: 'painting', name };
+    return p;
   }));
   group.userData.repaint = (...a) => repaint(...a);
   group.userData.restore = (...a) => restore(...a);
+  group.userData.ready = Promise.all(loads);
+  group.userData.sheet = mat.map?.image;                                       // (the exporter cuts each painting's picture out of it)
   return group;
 }
 
@@ -4487,25 +4409,11 @@ function roomLamps(lamps) {
   );
 }
 
-/* A soft halo texture, drawn on a canvas, for the streetlight. (Skipped
-   outside a browser, where there's no canvas.) */
-function halo(size) {
-  if (typeof document === 'undefined') return new THREE.Group();
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
-  const g = c.getContext('2d');
-  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-  grad.addColorStop(0, 'rgba(255,255,255,0.55)');
-  grad.addColorStop(0.25, 'rgba(255,255,255,0.18)');
-  grad.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 128, 128);
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: new THREE.CanvasTexture(c), blending: THREE.AdditiveBlending,
-    depthWrite: false, transparent: true
-  }));
-  sprite.scale.set(size, size, 1);
-  return sprite;
+/* A soft glow round a light: a spot for one here, drawn by components.js. */
+function halo(size, color = 0xffffff, boost = 1) {
+  const g = new THREE.Group();
+  g.userData.component = { type: 'halo', size, color, boost };
+  return g;
 }
 
 // The big streetlight by the front walk: pole, arm, head, and a spotlight down on the yard.
@@ -4680,12 +4588,18 @@ function paint(scene) {
   set('kitchen-sink', MAT.steel);
   set('cooktop', MAT.dark);
   for (const n of ['lamp-foyer', 'lamp-living', 'lamp-master', 'lamp-master-2', 'lamp-sofa', 'lamp-porch']) set(n, MAT.dark);   // shades keep glowing
+}
+
+// who casts and catches shadows: everything but glowing things, tiny things, and the land
+function shadowRules(scene) {
   scene.traverse(o => {
     if (!o.isMesh) return;
     const glows = o.material.isMeshBasicMaterial || o.userData.noShadow;
     o.castShadow = !glows && !o.userData.small;
     o.receiveShadow = !glows;
   });
+  for (const n of ['ground', 'forest', 'path', 'path-lamps', 'road', 'driveway'])
+    scene.traverse(o => { if (o.name === n) o.traverse(m => { if (m.isMesh) m.castShadow = false; }); });
 }
 
 /* ─── light switches ────────────────────────── */
@@ -4721,6 +4635,7 @@ function switchPlates() {
     const alongX = face[0] === 'z', out = face[1] === '-' ? -1 : 1, x = X(px), z = Z(py), y = FLOOR + 4;
     const lever = solid(new THREE.BoxGeometry(0.05, 0.13, 0.05), [0, 0.03, 0]);
     const pivot = new THREE.Group();
+    pivot.name = 'switch-' + circuit.replace(/ /g, '-') + '-lever';
     pivot.add(lever);
     pivot.position.set(alongX ? 0 : 0.035 * out, 0, alongX ? 0.035 * out : 0);
     const g = named('switch-' + circuit.replace(/ /g, '-'),
@@ -4728,6 +4643,7 @@ function switchPlates() {
     g.position.set(x + (alongX ? 0 : 0.015 * out), y, z + (alongX ? 0.015 * out : 0));
     g.userData.switch = circuit;
     g.userData.lever = pivot;
+    g.userData.leverName = pivot.name;
     g.userData.leverAxis = alongX ? 'x' : 'z';
     g.userData.leverSign = out;                         // which way is up depends on which way the plate faces
     g.userData.movesParts = true;                       // the lever flips; don't weld it into the plate
@@ -4756,7 +4672,7 @@ function wireLights(scene) {
   }
   for (const c of AT_THE_LAMP) for (const n of CIRCUITS[c]) { const g = groups.get(n); if (g) g.userData.switch = c; }
   const plates = [];
-  scene.traverse(o => { if (o.userData.lever) plates.push(o); });
+  scene.traverse(o => { if (o.userData.leverName) { o.userData.lever ||= o.getObjectByName(o.userData.leverName); plates.push(o); } });
   const setGroup = (g, on) => {
     g.userData.lit = on;
     g.traverse(o => {
@@ -4914,7 +4830,7 @@ function weld(geos, mesh) {
 /* ─── everything ────────────────────────────── */
 
 // weld: false skips bake(), for check-route.mjs (its rays test big welded meshes slowly)
-export function buildWorld({ weld = true } = {}) {
+export function buildWorld({ weld = true, raw = false } = {}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
   // the far yard fades into the night
@@ -4959,15 +4875,24 @@ export function buildWorld({ weld = true } = {}) {
     sky()
   );
   paint(scene);
-  wireLights(scene);
   for (const [name, text] of Object.entries(INSPECT)) scene.traverse(o => { if (o.name === name) o.userData.inspect = text; });
   // ghoul1 never goes outside, so check-route.mjs needn't test him against the yard
   for (const n of ['ground', 'forest', 'road', 'path', 'path-lamps', 'lamp-post', 'mailbox', 'streetlight', 'pine', 'bush', 'heavens', 'driveway'])
     scene.traverse(o => { if (o.name === n) o.traverse(m => { m.userData.passable = true; }); });
-  for (const n of ['ground', 'forest', 'path', 'path-lamps', 'road', 'driveway'])
-    scene.traverse(o => { if (o.name === n) o.traverse(m => { if (m.isMesh) m.castShadow = false; }); });
+  scene.userData.lamps = lamps;
+  if (raw) return scene;                          // as made, for tools/export-house (house.js finishes the loaded one)
+  return finishHouse(scene, { weld });
+}
+
+/* What every house needs once it's put together, made here or loaded
+   from the model files (house.js): shadows, the light switches, the
+   look-at text, and fewer, bigger draws. */
+export function finishHouse(scene, { weld = true } = {}) {
+  shadowRules(scene);
+  wireLights(scene);
+  for (const [name, text] of Object.entries(INSPECT)) scene.traverse(o => { if (o.name === name) o.userData.inspect = text; });
   examineAreas(scene);
   if (weld) bake(scene);
-  scene.userData.lamps = lamps;
   return scene;
 }
+export { sky };

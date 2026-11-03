@@ -14,9 +14,9 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { buildWorld } from './world.js?v=53';
+import { buildWorld } from './world.js?v=54';
 import { createGhoul } from './ghoul.js';
-import { camAt } from './cams.js?v=19';
+import { camAt } from './cams.js?v=20';
 
 const scene = buildWorld({ weld: false });   // same shapes, unwelded: much quicker to test
 scene.updateMatrixWorld(true);

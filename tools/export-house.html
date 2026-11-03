@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <base href="../" />
+  <title>crazyhouse: export the house to model files</title>
+  <style>body { background: #111; color: #ddd; font: 13px/1.5 ui-monospace, Menlo, monospace; padding: 16px; } b { color: #fff; }</style>
+</head>
+<body>
+  <p><b>Export the house to model files.</b> Run <code>python3 tools/save-server.py</code>, open this page from the
+  local server, and it writes every item to <code>models/</code> and the layout to <code>house.json</code>.
+  Add <code>?only=sofa,fridge</code> to redo just those (anything else you've edited in Blender is left alone).</p>
+  <pre id="log"></pre>
+  <script type="module" src="tools/export-house.js"></script>
+</body>
+</html>

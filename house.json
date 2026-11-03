@@ -1,0 +1,4524 @@
+{
+ "about": "crazyhouse level: which model goes where (models/*.glb), the groups they belong to, and the lights. Built by tools/export-house.html; read by house.js.",
+ "units": "feet, y up",
+ "groups": [
+  {
+   "name": "shell",
+   "parent": null
+  },
+  {
+   "name": "walls",
+   "parent": null
+  },
+  {
+   "name": "doors",
+   "parent": null
+  },
+  {
+   "name": "porches",
+   "parent": null
+  },
+  {
+   "name": "living-room",
+   "parent": null
+  },
+  {
+   "name": "kitchen",
+   "parent": null
+  },
+  {
+   "name": "master",
+   "parent": null
+  },
+  {
+   "name": "bathroom",
+   "parent": null
+  },
+  {
+   "name": "laundry",
+   "parent": null
+  },
+  {
+   "name": "foyer",
+   "parent": null
+  },
+  {
+   "name": "front-porch",
+   "parent": null
+  },
+  {
+   "name": "lamps",
+   "parent": null
+  },
+  {
+   "name": "clutter",
+   "parent": null
+  },
+  {
+   "name": "living-clutter",
+   "parent": "clutter"
+  },
+  {
+   "name": "kitchen-clutter",
+   "parent": "clutter"
+  },
+  {
+   "name": "bath-clutter",
+   "parent": "clutter"
+  },
+  {
+   "name": "bed-clutter",
+   "parent": "clutter"
+  },
+  {
+   "name": "foyer-clutter",
+   "parent": "clutter"
+  },
+  {
+   "name": "laundry-clutter",
+   "parent": "clutter"
+  },
+  {
+   "name": "paintings",
+   "parent": null
+  },
+  {
+   "name": "switch-plates",
+   "parent": null
+  }
+ ],
+ "items": [
+  {
+   "name": "ground",
+   "model": "models/yard/ground.glb",
+   "parent": null,
+   "position": [
+    0,
+    -8.93294,
+    0
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "path",
+   "model": "models/yard/path.glb",
+   "parent": null,
+   "position": [
+    -66.77578,
+    -4.77,
+    1.25485
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "foundation",
+   "model": "models/shell/foundation.glb",
+   "parent": "shell",
+   "position": [
+    0,
+    0,
+    0
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "ceiling",
+   "model": "models/shell/ceiling.glb",
+   "parent": "shell",
+   "position": [
+    -1.91466,
+    10.5,
+    0
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "roof",
+   "model": "models/shell/roof.glb",
+   "parent": "shell",
+   "position": [
+    3.46462,
+    10.15,
+    0
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "foyer-roof",
+   "model": "models/shell/foyer-roof.glb",
+   "parent": "shell",
+   "position": [
+    -19.93837,
+    10.4,
+    1.00292
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "gable-dressing",
+   "model": "models/shell/gable-dressing.glb",
+   "parent": "shell",
+   "position": [
+    -1.70216,
+    10.78026,
+    0
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-01.glb",
+   "parent": "walls",
+   "position": [
+    -5.98104,
+    0,
+    -16.76667
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-02.glb",
+   "parent": "walls",
+   "position": [
+    -13.79438,
+    0,
+    -9.50036
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-03.glb",
+   "parent": "walls",
+   "position": [
+    1.85055,
+    0,
+    -13.18381
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-04.glb",
+   "parent": "walls",
+   "position": [
+    11.19621,
+    0,
+    -9.80095
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-05.glb",
+   "parent": "walls",
+   "position": [
+    20.74187,
+    0,
+    3.48286
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-06.glb",
+   "parent": "walls",
+   "position": [
+    3.46462,
+    0,
+    16.76667
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-07.glb",
+   "parent": "walls",
+   "position": [
+    -13.79438,
+    0,
+    10.52152
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-08.glb",
+   "parent": "walls",
+   "position": [
+    -17.52371,
+    0,
+    -4.7546
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-09.glb",
+   "parent": "walls",
+   "position": [
+    -20.71687,
+    0,
+    1.00292
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-10.glb",
+   "parent": "walls",
+   "position": [
+    -17.52371,
+    0,
+    6.7922
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-11.glb",
+   "parent": "walls",
+   "position": [
+    -16.81255,
+    2.5,
+    -2.13348
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-12.glb",
+   "parent": "walls",
+   "position": [
+    -11.26915,
+    2.5,
+    4.19402
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-13.glb",
+   "parent": "walls",
+   "position": [
+    -9.37272,
+    2.5,
+    7.14807
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-14.glb",
+   "parent": "walls",
+   "position": [
+    -11.43326,
+    2.5,
+    8.62509
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-15.glb",
+   "parent": "walls",
+   "position": [
+    -2.29759,
+    2.5,
+    7.18454
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-16.glb",
+   "parent": "walls",
+   "position": [
+    -2.58935,
+    2.5,
+    11.88913
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-17.glb",
+   "parent": "walls",
+   "position": [
+    4.7593,
+    2.5,
+    9.8833
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-18.glb",
+   "parent": "walls",
+   "position": [
+    9.28155,
+    2.5,
+    3.6105
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-19.glb",
+   "parent": "walls",
+   "position": [
+    14.11379,
+    2.5,
+    3.81109
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-20.glb",
+   "parent": "walls",
+   "position": [
+    17.12254,
+    2.5,
+    1.6229
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/walls/wall-21.glb",
+   "parent": "walls",
+   "position": [
+    17.12254,
+    2.5,
+    5.98104
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "door-front",
+   "model": "models/doors/door-front.glb",
+   "parent": "doors",
+   "position": [
+    -20.91539,
+    0,
+    -0.74763
+   ],
+   "quaternion": [
+    0,
+    -0.70711,
+    0,
+    0.70711
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "door-patio",
+   "model": "models/doors/door-patio.glb",
+   "parent": "doors",
+   "position": [
+    7.96864,
+    2.48,
+    -9.70095
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "door-master",
+   "model": "models/doors/door-master.glb",
+   "parent": "doors",
+   "position": [
+    4.7593,
+    0,
+    4.10284
+   ],
+   "quaternion": [
+    0,
+    -0.70711,
+    0,
+    0.70711
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "door-coat-closet",
+   "model": "models/doors/door-coat-closet.glb",
+   "parent": "doors",
+   "position": [
+    0,
+    0,
+    0
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "door-pantry",
+   "model": "models/doors/door-pantry.glb",
+   "parent": "doors",
+   "position": [
+    14.56966,
+    0,
+    1.6229
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "door-closet",
+   "model": "models/doors/door-closet.glb",
+   "parent": "doors",
+   "position": [
+    0,
+    0,
+    0
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "bead-curtain",
+   "model": "models/doors/bead-curtain.glb",
+   "parent": "doors",
+   "position": [
+    0,
+    0,
+    0
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "door-pocket",
+   "model": "models/doors/door-pocket.glb",
+   "parent": "doors",
+   "position": [
+    -2.58935,
+    0,
+    10.26623
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-01.glb",
+   "parent": "porches",
+   "position": [
+    11.54267,
+    2.2,
+    -13.53027
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-02.glb",
+   "parent": "porches",
+   "position": [
+    11.19621,
+    0,
+    -16.66667
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-03.glb",
+   "parent": "porches",
+   "position": [
+    20.6601,
+    0,
+    -16.66667
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-04.glb",
+   "parent": "porches",
+   "position": [
+    11.54267,
+    10.1,
+    -16.66667
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-05.glb",
+   "parent": "porches",
+   "position": [
+    20.64187,
+    10.1,
+    -13.18381
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "railing",
+   "model": "models/porches/railing.glb",
+   "parent": "porches",
+   "position": [
+    3.50109,
+    2.5,
+    -16.6849
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "railing",
+   "model": "models/porches/railing-2.glb",
+   "parent": "porches",
+   "position": [
+    9.59154,
+    2.5,
+    -16.6849
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "railing",
+   "model": "models/porches/railing-3.glb",
+   "parent": "porches",
+   "position": [
+    15.91904,
+    2.5,
+    -16.6849
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "railing",
+   "model": "models/porches/railing-4.glb",
+   "parent": "porches",
+   "position": [
+    20.6601,
+    2.5,
+    -13.25675
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-10.glb",
+   "parent": "porches",
+   "position": [
+    6.54632,
+    0.9375,
+    -17.51313
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-11.glb",
+   "parent": "porches",
+   "position": [
+    6.54632,
+    0.625,
+    -18.51313
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-12.glb",
+   "parent": "porches",
+   "position": [
+    6.54632,
+    0.3125,
+    -19.51313
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "porch-table",
+   "model": "models/porches/porch-table.glb",
+   "parent": "porches",
+   "position": [
+    17.74252,
+    2.5,
+    -13.51204
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-14.glb",
+   "parent": "porches",
+   "position": [
+    17.74252,
+    2.5,
+    -15.26258
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-15.glb",
+   "parent": "porches",
+   "position": [
+    17.74252,
+    2.5,
+    -11.76149
+   ],
+   "quaternion": [
+    0,
+    1,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-16.glb",
+   "parent": "porches",
+   "position": [
+    16.02845,
+    2.5,
+    -13.51204
+   ],
+   "quaternion": [
+    0,
+    0.70711,
+    0,
+    0.70711
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-17.glb",
+   "parent": "porches",
+   "position": [
+    19.4566,
+    2.5,
+    -13.51204
+   ],
+   "quaternion": [
+    0,
+    -0.70711,
+    0,
+    0.70711
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-18.glb",
+   "parent": "porches",
+   "position": [
+    -22.90299,
+    2.2,
+    1.00292
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-19.glb",
+   "parent": "porches",
+   "position": [
+    -24.61707,
+    0,
+    -4.72283
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-20.glb",
+   "parent": "porches",
+   "position": [
+    -24.61707,
+    0,
+    6.72867
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-21.glb",
+   "parent": "porches",
+   "position": [
+    -24.61707,
+    10.1,
+    1.00292
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-22.glb",
+   "parent": "porches",
+   "position": [
+    -25.31765,
+    0.9375,
+    1.00292
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-23.glb",
+   "parent": "porches",
+   "position": [
+    -26.31765,
+    0.625,
+    1.00292
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/porches/porch-24.glb",
+   "parent": "porches",
+   "position": [
+    -27.31765,
+    0.3125,
+    1.00292
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "sofa",
+   "model": "models/living-room/sofa.glb",
+   "parent": "living-room",
+   "position": [
+    -8.95332,
+    2.5,
+    -7.03866
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "rug",
+   "model": "models/living-room/rug.glb",
+   "parent": "living-room",
+   "position": [
+    -7.12983,
+    2.5,
+    -8.49745
+   ],
+   "quaternion": [
+    0,
+    0.06994,
+    0,
+    0.99755
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "armchair",
+   "model": "models/living-room/armchair.glb",
+   "parent": "living-room",
+   "position": [
+    -1.11233,
+    2.5,
+    -13.0744
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "side-table",
+   "model": "models/living-room/side-table.glb",
+   "parent": "living-room",
+   "position": [
+    -3.79285,
+    2.5,
+    -14.78848
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "dining-table",
+   "model": "models/living-room/dining-table.glb",
+   "parent": "living-room",
+   "position": [
+    0.56921,
+    2.5,
+    -3.57403
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "dining-chairs",
+   "model": "models/living-room/dining-chairs.glb",
+   "parent": "living-room",
+   "position": [
+    0.79752,
+    2.5,
+    -3.54979
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "wood-stove",
+   "model": "models/living-room/wood-stove.glb",
+   "parent": "living-room",
+   "position": [
+    -1.22174,
+    2.5,
+    5.23341
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "fire",
+   "model": "models/living-room/fire.glb",
+   "parent": "living-room",
+   "position": [
+    -1.23997,
+    2.92,
+    5.1561
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "post",
+   "model": "models/living-room/post.glb",
+   "parent": "living-room",
+   "position": [
+    -5.98104,
+    2.5,
+    -1.71408
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-pillar",
+   "model": "models/living-room/lamp-pillar.glb",
+   "parent": "living-room",
+   "position": [
+    -5.98104,
+    7.34,
+    -2.23466
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "island",
+   "model": "models/kitchen/island.glb",
+   "parent": "kitchen",
+   "position": [
+    10.83151,
+    2.5,
+    -3.71035
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "cooktop",
+   "model": "models/kitchen/cooktop.glb",
+   "parent": "kitchen",
+   "position": [
+    10.92268,
+    5.5,
+    -3.15463
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "stools",
+   "model": "models/kitchen/stools.glb",
+   "parent": "kitchen",
+   "position": [
+    10.7221,
+    2.5,
+    -6.14515
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "counter-east",
+   "model": "models/kitchen/counter-east.glb",
+   "parent": "kitchen",
+   "position": [
+    19.22822,
+    2.5,
+    -3.95697
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "kitchen-sink",
+   "model": "models/kitchen/kitchen-sink.glb",
+   "parent": "kitchen",
+   "position": [
+    19.33607,
+    4.75,
+    -3.99344
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-sink",
+   "model": "models/kitchen/lamp-sink.glb",
+   "parent": "kitchen",
+   "position": [
+    18.94602,
+    9.11,
+    -3.99344
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "dish-drainer",
+   "model": "models/kitchen/dish-drainer.glb",
+   "parent": "kitchen",
+   "position": [
+    19.37968,
+    5.5,
+    -5.22974
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "pizza-boxes",
+   "model": "models/kitchen/pizza-boxes.glb",
+   "parent": "kitchen",
+   "position": [
+    10.64043,
+    5.5,
+    -4.02257
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "counter-south",
+   "model": "models/kitchen/counter-south.glb",
+   "parent": "kitchen",
+   "position": [
+    7.76805,
+    2.5,
+    2.36097
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "fridge",
+   "model": "models/kitchen/fridge.glb",
+   "parent": "kitchen",
+   "position": [
+    12.38147,
+    2.5,
+    2.2598
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "fridge-glow",
+   "model": "models/kitchen/fridge-glow.glb",
+   "parent": "kitchen",
+   "position": [
+    0,
+    0,
+    0
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "pantry-shelves",
+   "model": "models/kitchen/pantry-shelves.glb",
+   "parent": "kitchen",
+   "position": [
+    17.28665,
+    2.5,
+    3.79285
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "bed",
+   "model": "models/master-bedroom/bed.glb",
+   "parent": "master",
+   "position": [
+    11.5609,
+    2.5,
+    13.0744
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "nightstands",
+   "model": "models/master-bedroom/nightstands.glb",
+   "parent": "master",
+   "position": [
+    11.65208,
+    2.5,
+    15.4814
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "bookshelf",
+   "model": "models/master-bedroom/bookshelf.glb",
+   "parent": "master",
+   "position": [
+    11.5609,
+    2.5,
+    4.55872
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-standing",
+   "model": "models/master-bedroom/lamp-standing.glb",
+   "parent": "master",
+   "position": [
+    8.51568,
+    2.5,
+    4.50401
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "computer-desk",
+   "model": "models/master-bedroom/computer-desk.glb",
+   "parent": "master",
+   "position": [
+    18.2676,
+    2.5,
+    11.83517
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "round-table",
+   "model": "models/master-bedroom/round-table.glb",
+   "parent": "master",
+   "position": [
+    19.16484,
+    2.5,
+    8.22392
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "toilet",
+   "model": "models/bathroom/toilet.glb",
+   "parent": "bathroom",
+   "position": [
+    -11.5062,
+    2.5,
+    9.98233
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "shower",
+   "model": "models/bathroom/shower.glb",
+   "parent": "bathroom",
+   "position": [
+    -10.57446,
+    2.5,
+    14.74421
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "vanity",
+   "model": "models/bathroom/vanity.glb",
+   "parent": "bathroom",
+   "position": [
+    -5.34282,
+    2.5,
+    15.20758
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "mirror",
+   "model": "models/bathroom/mirror.glb",
+   "parent": "bathroom",
+   "position": [
+    -5.30635,
+    6,
+    16.2602
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "bathmat",
+   "model": "models/bathroom/bathmat.glb",
+   "parent": "bathroom",
+   "position": [
+    -10.64916,
+    2.5,
+    12.58206
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "washer",
+   "model": "models/laundry/washer.glb",
+   "parent": "laundry",
+   "position": [
+    -1.11233,
+    2.5,
+    8.64333
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "dryer",
+   "model": "models/laundry/dryer.glb",
+   "parent": "laundry",
+   "position": [
+    1.29468,
+    2.5,
+    8.72833
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "shelf",
+   "model": "models/laundry/shelf.glb",
+   "parent": "laundry",
+   "position": [
+    1.09409,
+    7.7,
+    8.08627
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "closet-shelves",
+   "model": "models/laundry/closet-shelves.glb",
+   "parent": "laundry",
+   "position": [
+    1.09409,
+    4.53,
+    14.80671
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "bench",
+   "model": "models/foyer/bench.glb",
+   "parent": "foyer",
+   "position": [
+    -17.06783,
+    2.5,
+    5.1787
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-porch",
+   "model": "models/front-porch/lamp-porch.glb",
+   "parent": "front-porch",
+   "position": [
+    -21.28975,
+    8.42,
+    3.51933
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "rocking-chair",
+   "model": "models/front-porch/rocking-chair.glb",
+   "parent": "front-porch",
+   "position": [
+    -22.99416,
+    2.5,
+    5.23341
+   ],
+   "quaternion": [
+    0,
+    -0.60876,
+    0,
+    0.79335
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "road",
+   "model": "models/yard/road.glb",
+   "parent": null,
+   "position": [
+    -118,
+    -5.08738,
+    0
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "driveway",
+   "model": "models/yard/driveway.glb",
+   "parent": null,
+   "position": [
+    -93.5,
+    -4.78,
+    20
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "van",
+   "model": "models/van/van.glb",
+   "parent": null,
+   "position": [
+    -88,
+    -3.6,
+    20
+   ],
+   "quaternion": [
+    0,
+    0,
+    0.03742,
+    0.9993
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "van-step",
+   "model": "models/van/van-step.glb",
+   "parent": null,
+   "position": [
+    -86.45,
+    -3.48375,
+    20
+   ],
+   "quaternion": [
+    0,
+    0,
+    0.03742,
+    0.9993
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "path-lamps",
+   "model": "models/yard/path-lamps.glb",
+   "parent": null,
+   "position": [
+    -67.03685,
+    -4.53698,
+    1.62947
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-post",
+   "model": "models/yard/lamp-post.glb",
+   "parent": null,
+   "position": [
+    -33.5,
+    0,
+    -6.5
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "mailbox",
+   "model": "models/yard/mailbox.glb",
+   "parent": null,
+   "position": [
+    -103.5,
+    -4.7625,
+    2
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "pine",
+   "model": "models/yard/pine.glb",
+   "parent": null,
+   "position": [
+    -39,
+    0.07897,
+    -13
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "pine",
+   "model": "models/yard/pine-2.glb",
+   "parent": null,
+   "position": [
+    -24,
+    0.11604,
+    -31
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "pine",
+   "model": "models/yard/pine-3.glb",
+   "parent": null,
+   "position": [
+    30,
+    0.07064,
+    30
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "pine",
+   "model": "models/yard/pine-4.glb",
+   "parent": null,
+   "position": [
+    36,
+    0.42664,
+    -30
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "pine",
+   "model": "models/yard/pine-5.glb",
+   "parent": null,
+   "position": [
+    12,
+    0.34871,
+    33
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "pine",
+   "model": "models/yard/pine-6.glb",
+   "parent": null,
+   "position": [
+    40,
+    -0.61758,
+    8
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "forest",
+   "model": "models/yard/forest.glb",
+   "parent": null,
+   "position": [
+    49.42326,
+    -1.93314,
+    3.67646
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "streetlight",
+   "model": "models/yard/streetlight.glb",
+   "parent": null,
+   "position": [
+    -104.5,
+    -4.8,
+    -14
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-foyer",
+   "model": "models/lamps/lamp-foyer.glb",
+   "parent": "lamps",
+   "position": [
+    -19.71189,
+    2.5,
+    5.63457
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-living",
+   "model": "models/lamps/lamp-living.glb",
+   "parent": "lamps",
+   "position": [
+    -3.81109,
+    4.5,
+    -14.78848
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-dining",
+   "model": "models/lamps/lamp-dining.glb",
+   "parent": "lamps",
+   "position": [
+    0.52881,
+    8.73,
+    -3.59227
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-kitchen",
+   "model": "models/lamps/lamp-kitchen.glb",
+   "parent": "lamps",
+   "position": [
+    10.84974,
+    8.73,
+    -3.77462
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-master",
+   "model": "models/lamps/lamp-master.glb",
+   "parent": "lamps",
+   "position": [
+    8.00511,
+    4.6,
+    15.4814
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-master-2",
+   "model": "models/lamps/lamp-master-2.glb",
+   "parent": "lamps",
+   "position": [
+    15.29905,
+    4.6,
+    15.4814
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "end-table",
+   "model": "models/lamps/end-table.glb",
+   "parent": "lamps",
+   "position": [
+    -11.23268,
+    2.5,
+    -12.74617
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-sofa",
+   "model": "models/lamps/lamp-sofa.glb",
+   "parent": "lamps",
+   "position": [
+    -11.25091,
+    4.4,
+    -12.74617
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-laundry",
+   "model": "models/lamps/lamp-laundry.glb",
+   "parent": "lamps",
+   "position": [
+    1.07586,
+    8.05,
+    10.12035
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-pantry",
+   "model": "models/lamps/lamp-pantry.glb",
+   "parent": "lamps",
+   "position": [
+    17.30489,
+    10.261,
+    3.77462
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-toilet",
+   "model": "models/lamps/lamp-toilet.glb",
+   "parent": "lamps",
+   "position": [
+    -11.5062,
+    10.261,
+    10.37564
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-bathroom",
+   "model": "models/lamps/lamp-bathroom.glb",
+   "parent": "lamps",
+   "position": [
+    -5.30635,
+    9.16,
+    16.2002
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "lamp-patio",
+   "model": "models/lamps/lamp-patio.glb",
+   "parent": "lamps",
+   "position": [
+    13.84026,
+    9.125,
+    -10.24741
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "stereo",
+   "model": "models/living-room/stereo.glb",
+   "parent": null,
+   "position": [
+    -7.38512,
+    2.5,
+    -15.79123
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "fiddle-fig",
+   "model": "models/living-room/fiddle-fig.glb",
+   "parent": null,
+   "position": [
+    -12.49088,
+    2.5,
+    -15.40846
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/living-room/months-old-newspapers-every.glb",
+   "parent": "living-clutter",
+   "position": [
+    -4.32509,
+    2.5,
+    -3.24403
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/living-room/cold-coffee-with-skin.glb",
+   "parent": "living-clutter",
+   "position": [
+    -10.62196,
+    4.4,
+    -12.23206
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/living-room/crate-old-records-somebodys.glb",
+   "parent": "living-clutter",
+   "position": [
+    -2.31583,
+    2.5,
+    -15.70022
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/kitchen/pots-half-full-and.glb",
+   "parent": "kitchen-clutter",
+   "position": [
+    19.49248,
+    5.5,
+    -0.74763
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/kitchen/bills-catalogue-postcard-postcard.glb",
+   "parent": "kitchen-clutter",
+   "position": [
+    13.06983,
+    5.5,
+    -2.75346
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/kitchen/apples-look-fine-banana.glb",
+   "parent": "kitchen-clutter",
+   "position": [
+    11.65208,
+    5.5,
+    -5.01459
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/kitchen/flour-sugar-coffee-something.glb",
+   "parent": "kitchen-clutter",
+   "position": [
+    5.86047,
+    5.5,
+    2.89934
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/kitchen/cords-stretched-out-and.glb",
+   "parent": "kitchen-clutter",
+   "position": [
+    8.11806,
+    5.63665,
+    3.23525
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/kitchen/one-day-is-circled.glb",
+   "parent": "kitchen-clutter",
+   "position": [
+    9.75565,
+    6.775,
+    3.43639
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/kitchen/kitchen-bits.glb",
+   "parent": "kitchen-clutter",
+   "position": [
+    19.49307,
+    5.5,
+    0.4194
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/bathroom/soap-is-still-wet.glb",
+   "parent": "bath-clutter",
+   "position": [
+    -3.59227,
+    5.3,
+    15.73669
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/bathroom/two-toothbrushes-in-cup.glb",
+   "parent": "bath-clutter",
+   "position": [
+    -7.01079,
+    5.305,
+    15.88257
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/bathroom/old-magazines-every-face.glb",
+   "parent": "bath-clutter",
+   "position": [
+    -9.938,
+    2.5,
+    9.75565
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/bathroom/bath-bits.glb",
+   "parent": "bath-clutter",
+   "position": [
+    -12.00119,
+    2.85,
+    12.49559
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/master-bedroom/alarm-clock-says-333.glb",
+   "parent": "bed-clutter",
+   "position": [
+    7.34865,
+    4.6,
+    14.93185
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/master-bedroom/half-glass-water-theres.glb",
+   "parent": "bed-clutter",
+   "position": [
+    15.91904,
+    4.6,
+    15.00729
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/master-bedroom/library-books-years-overdue.glb",
+   "parent": "bed-clutter",
+   "position": [
+    14.71554,
+    4.6,
+    15.00729
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/master-bedroom/printouts-hundreds-pages-same.glb",
+   "parent": "bed-clutter",
+   "position": [
+    15.12457,
+    2.5,
+    7.10258
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/master-bedroom/bed-bits.glb",
+   "parent": "bed-clutter",
+   "position": [
+    19.00167,
+    2.38768,
+    7.13807
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/foyer/two-pairs-shoes-by.glb",
+   "parent": "foyer-clutter",
+   "position": [
+    -19.67407,
+    2.5,
+    3.6481
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/foyer/bowl-for-keys-keys.glb",
+   "parent": "foyer-clutter",
+   "position": [
+    -18.07075,
+    4.1,
+    5.16047
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/foyer/foyer-bits.glb",
+   "parent": "foyer-clutter",
+   "position": [
+    -16.07944,
+    4.1,
+    5.16275
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "model": "models/clutter/laundry/heap-clothes-waiting-for.glb",
+   "parent": "laundry-clutter",
+   "position": [
+    0.94916,
+    2.38768,
+    15.45317
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-valley",
+   "model": "models/paintings/painting-valley.glb",
+   "parent": "paintings",
+   "position": [
+    -13.26969,
+    6.63,
+    -4.7593
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-forest",
+   "model": "models/paintings/painting-forest.glb",
+   "parent": "paintings",
+   "position": [
+    2.60759,
+    6.73,
+    6.85101
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-moonrise",
+   "model": "models/paintings/painting-moonrise.glb",
+   "parent": "paintings",
+   "position": [
+    13.9132,
+    7.615,
+    -9.29449
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-coast",
+   "model": "models/paintings/painting-coast.glb",
+   "parent": "paintings",
+   "position": [
+    19.12837,
+    7.28,
+    -9.29449
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-field",
+   "model": "models/paintings/painting-field.glb",
+   "parent": "paintings",
+   "position": [
+    5.99927,
+    7.38,
+    3.38639
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-mountains",
+   "model": "models/paintings/painting-mountains.glb",
+   "parent": "paintings",
+   "position": [
+    11.83443,
+    7.38,
+    16.2602
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-waterfall",
+   "model": "models/paintings/painting-waterfall.glb",
+   "parent": "paintings",
+   "position": [
+    4.96518,
+    6.93,
+    8.80744
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-church",
+   "model": "models/paintings/painting-church.glb",
+   "parent": "paintings",
+   "position": [
+    17.12254,
+    7.03,
+    6.20515
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-marsh",
+   "model": "models/paintings/painting-marsh.glb",
+   "parent": "paintings",
+   "position": [
+    -4.02991,
+    7.48,
+    7.51806
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-isle",
+   "model": "models/paintings/painting-isle.glb",
+   "parent": "paintings",
+   "position": [
+    18.87309,
+    7.13,
+    16.2602
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-winter",
+   "model": "models/paintings/painting-winter.glb",
+   "parent": "paintings",
+   "position": [
+    20.2354,
+    7.78,
+    -8.40627
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-cypress",
+   "model": "models/paintings/painting-cypress.glb",
+   "parent": "paintings",
+   "position": [
+    1.34408,
+    7.205,
+    -9.938
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-color-field",
+   "model": "models/paintings/painting-color-field.glb",
+   "parent": "paintings",
+   "position": [
+    11.54267,
+    8.29,
+    3.83462
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-black-square",
+   "model": "models/paintings/painting-black-square.glb",
+   "parent": "paintings",
+   "position": [
+    20.2354,
+    7.44,
+    6.8016
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-ginevra",
+   "model": "models/paintings/painting-ginevra.glb",
+   "parent": "paintings",
+   "position": [
+    -5.98104,
+    7.03,
+    -16.2602
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-durer",
+   "model": "models/paintings/painting-durer.glb",
+   "parent": "paintings",
+   "position": [
+    -4.54048,
+    6.53,
+    6.85101
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-duchess",
+   "model": "models/paintings/painting-duchess.glb",
+   "parent": "paintings",
+   "position": [
+    -20.2354,
+    7.13,
+    4.17578
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-young-woman",
+   "model": "models/paintings/painting-young-woman.glb",
+   "parent": "paintings",
+   "position": [
+    -11.5062,
+    7.43,
+    8.83097
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-weyden-lady",
+   "model": "models/paintings/painting-weyden-lady.glb",
+   "parent": "paintings",
+   "position": [
+    -2.81346,
+    6.88,
+    8.80744
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-eleonora",
+   "model": "models/paintings/painting-eleonora.glb",
+   "parent": "paintings",
+   "position": [
+    4.96518,
+    6.88,
+    14.71554
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-erasmus",
+   "model": "models/paintings/painting-erasmus.glb",
+   "parent": "paintings",
+   "position": [
+    0.7841,
+    7.205,
+    -16.2602
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-condottiero",
+   "model": "models/paintings/painting-condottiero.glb",
+   "parent": "paintings",
+   "position": [
+    2.75346,
+    7.18,
+    -9.29449
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-more",
+   "model": "models/paintings/painting-more.glb",
+   "parent": "paintings",
+   "position": [
+    20.2354,
+    7.155,
+    0.49234
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-young-man",
+   "model": "models/paintings/painting-young-man.glb",
+   "parent": "paintings",
+   "position": [
+    20.2354,
+    7.005,
+    15.37199
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-bembo",
+   "model": "models/paintings/painting-bembo.glb",
+   "parent": "paintings",
+   "position": [
+    19.38366,
+    7.18,
+    6.20515
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-grandson",
+   "model": "models/paintings/painting-grandson.glb",
+   "parent": "paintings",
+   "position": [
+    -9.14861,
+    6.83,
+    5.63457
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-turban",
+   "model": "models/paintings/painting-turban.glb",
+   "parent": "paintings",
+   "position": [
+    -13.26969,
+    7.38,
+    9.64624
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "painting-lucrezia",
+   "model": "models/paintings/painting-lucrezia.glb",
+   "parent": "paintings",
+   "position": [
+    -14.11908,
+    7.38,
+    5.16047
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "switch-porch-light",
+   "model": "models/switch-plates/switch-porch-light.glb",
+   "parent": "switch-plates",
+   "position": [
+    -20.2804,
+    6.5,
+    3.77462
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "switch-living-room",
+   "model": "models/switch-plates/switch-living-room.glb",
+   "parent": "switch-plates",
+   "position": [
+    -14.07408,
+    6.5,
+    5.16047
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "switch-patio",
+   "model": "models/switch-plates/switch-patio.glb",
+   "parent": "switch-plates",
+   "position": [
+    12.96499,
+    6.5,
+    -9.33949
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "switch-kitchen",
+   "model": "models/switch-plates/switch-kitchen.glb",
+   "parent": "switch-plates",
+   "position": [
+    13.47557,
+    6.5,
+    -9.33949
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "switch-pantry",
+   "model": "models/switch-plates/switch-pantry.glb",
+   "parent": "switch-plates",
+   "position": [
+    14.2929,
+    6.5,
+    2.89934
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "switch-bathroom",
+   "model": "models/switch-plates/switch-bathroom.glb",
+   "parent": "switch-plates",
+   "position": [
+    -5.67104,
+    6.5,
+    7.47306
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "name": "switch-bedroom",
+   "model": "models/switch-plates/switch-bedroom.glb",
+   "parent": "switch-plates",
+   "position": [
+    4.92018,
+    6.5,
+    7.42159
+   ],
+   "quaternion": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  }
+ ],
+ "lights": [
+  {
+   "name": "fire-inside-light",
+   "type": "PointLight",
+   "parent": "fire",
+   "position": [
+    0,
+    1.31,
+    0.22318
+   ],
+   "color": "#ff6a20",
+   "intensity": 0.9,
+   "visible": true,
+   "distance": 2,
+   "decay": 2
+  },
+  {
+   "name": "fire-light",
+   "type": "SpotLight",
+   "parent": "fire",
+   "position": [
+    0,
+    0.88,
+    -1.19797
+   ],
+   "color": "#ff8c3a",
+   "intensity": 4,
+   "visible": true,
+   "distance": 16,
+   "decay": 2,
+   "angle": 1.05,
+   "penumbra": 0.8,
+   "target": [
+    0,
+    0.08,
+    -8.79797
+   ]
+  },
+  {
+   "name": "lamp-pillar-light",
+   "type": "SpotLight",
+   "parent": "lamp-pillar",
+   "position": [
+    0,
+    0.5,
+    -0.08
+   ],
+   "color": "#ffdcae",
+   "intensity": 17,
+   "visible": true,
+   "distance": 14,
+   "decay": 2,
+   "angle": 1.2,
+   "penumbra": 0.9,
+   "target": [
+    -2.78993,
+    -3.64,
+    -4.34813
+   ]
+  },
+  {
+   "name": "lamp-pillar-up-light",
+   "type": "SpotLight",
+   "parent": "lamp-pillar",
+   "position": [
+    0,
+    0.5,
+    -0.08
+   ],
+   "color": "#ffdcae",
+   "intensity": 5,
+   "visible": true,
+   "distance": 6,
+   "decay": 2,
+   "angle": 0.6,
+   "penumbra": 0.8,
+   "target": [
+    0,
+    3.16,
+    -0.08
+   ]
+  },
+  {
+   "name": "lamp-sink-light",
+   "type": "SpotLight",
+   "parent": "lamp-sink",
+   "position": [
+    0,
+    0.04,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 22,
+   "visible": true,
+   "distance": 6.5,
+   "decay": 2,
+   "angle": 0.45,
+   "penumbra": 0.6,
+   "target": [
+    -1.15,
+    -3.61,
+    0
+   ]
+  },
+  {
+   "name": "fridge-light",
+   "type": "SpotLight",
+   "parent": "fridge-glow",
+   "position": [
+    12.38147,
+    8.55,
+    1.75821
+   ],
+   "color": "#f2f6ff",
+   "intensity": 0,
+   "visible": true,
+   "distance": 10,
+   "decay": 2,
+   "angle": 0.9,
+   "penumbra": 0.4,
+   "target": [
+    12.38147,
+    3.1,
+    -2.34179
+   ]
+  },
+  {
+   "name": "lamp-standing-light",
+   "type": "SpotLight",
+   "parent": "lamp-standing",
+   "position": [
+    0,
+    5.2,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 18,
+   "visible": true,
+   "distance": 10,
+   "decay": 2,
+   "angle": 0.6,
+   "penumbra": 0.7,
+   "target": [
+    2.5,
+    0,
+    4.5
+   ]
+  },
+  {
+   "name": "lamp-desk-light",
+   "type": "SpotLight",
+   "parent": "lamp-desk",
+   "position": [
+    19.51306,
+    5.83,
+    9.96678
+   ],
+   "color": "#ffdcae",
+   "intensity": 9,
+   "visible": true,
+   "distance": 4.5,
+   "decay": 2,
+   "angle": 0.85,
+   "penumbra": 0.55,
+   "target": [
+    18.62487,
+    5,
+    10.26678
+   ]
+  },
+  {
+   "name": "lamp-porch-light",
+   "type": "PointLight",
+   "parent": "lamp-porch",
+   "position": [
+    -0.14858,
+    0.38,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 34,
+   "visible": true,
+   "distance": 0,
+   "decay": 2,
+   "shadow": {
+    "size": 512,
+    "near": 0.25,
+    "far": 40,
+    "bias": -0.0005,
+    "normalBias": 0.04,
+    "radius": 3,
+    "intensity": 0.62
+   }
+  },
+  {
+   "name": "van-light",
+   "type": "SpotLight",
+   "parent": "van",
+   "position": [
+    -9.1,
+    5.95,
+    2.7
+   ],
+   "color": "#ffe4c4",
+   "intensity": 45,
+   "visible": true,
+   "distance": 6.5,
+   "decay": 2,
+   "angle": 1.15,
+   "penumbra": 0.75,
+   "target": [
+    -6.8,
+    2.2,
+    0.4
+   ]
+  },
+  {
+   "name": "lamp-post-light",
+   "type": "PointLight",
+   "parent": "lamp-post",
+   "position": [
+    0,
+    10,
+    0
+   ],
+   "color": "#ffd59a",
+   "intensity": 320,
+   "visible": true,
+   "distance": 0,
+   "decay": 2,
+   "shadow": {
+    "size": 512,
+    "near": 0.25,
+    "far": 70,
+    "bias": -0.0005,
+    "normalBias": 0.04,
+    "radius": 3,
+    "intensity": 0.85
+   }
+  },
+  {
+   "name": "streetlight-light",
+   "type": "SpotLight",
+   "parent": "streetlight",
+   "position": [
+    -5,
+    25.4,
+    0
+   ],
+   "color": "#ffd9a0",
+   "intensity": 2400,
+   "visible": true,
+   "distance": 70,
+   "decay": 2,
+   "angle": 1,
+   "penumbra": 0.7,
+   "target": [
+    -6,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "lamp-foyer-light",
+   "type": "PointLight",
+   "parent": "lamp-foyer",
+   "position": [
+    0,
+    5.2,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 28,
+   "visible": true,
+   "distance": 0,
+   "decay": 2,
+   "shadow": {
+    "size": 512,
+    "near": 0.25,
+    "far": 40,
+    "bias": -0.0005,
+    "normalBias": 0.04,
+    "radius": 3,
+    "intensity": 0.62
+   }
+  },
+  {
+   "name": "lamp-living-light",
+   "type": "PointLight",
+   "parent": "lamp-living",
+   "position": [
+    0,
+    2,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 20,
+   "visible": true,
+   "distance": 0,
+   "decay": 2,
+   "shadow": {
+    "size": 512,
+    "near": 0.25,
+    "far": 40,
+    "bias": -0.0005,
+    "normalBias": 0.04,
+    "radius": 3,
+    "intensity": 0.62
+   }
+  },
+  {
+   "name": "lamp-dining-light",
+   "type": "PointLight",
+   "parent": "lamp-dining",
+   "position": [
+    0,
+    -0.03,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 36,
+   "visible": true,
+   "distance": 0,
+   "decay": 2,
+   "shadow": {
+    "size": 512,
+    "near": 0.25,
+    "far": 40,
+    "bias": -0.0005,
+    "normalBias": 0.04,
+    "radius": 3,
+    "intensity": 0.62
+   }
+  },
+  {
+   "name": "lamp-kitchen-light",
+   "type": "PointLight",
+   "parent": "lamp-kitchen",
+   "position": [
+    0,
+    -0.03,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 36,
+   "visible": true,
+   "distance": 0,
+   "decay": 2,
+   "shadow": {
+    "size": 512,
+    "near": 0.25,
+    "far": 40,
+    "bias": -0.0005,
+    "normalBias": 0.04,
+    "radius": 3,
+    "intensity": 0.62
+   }
+  },
+  {
+   "name": "lamp-master-light",
+   "type": "PointLight",
+   "parent": "lamp-master",
+   "position": [
+    0,
+    1.2,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 16,
+   "visible": true,
+   "distance": 0,
+   "decay": 2,
+   "shadow": {
+    "size": 512,
+    "near": 0.25,
+    "far": 40,
+    "bias": -0.0005,
+    "normalBias": 0.04,
+    "radius": 3,
+    "intensity": 0.62
+   }
+  },
+  {
+   "name": "lamp-master-2-light",
+   "type": "PointLight",
+   "parent": "lamp-master-2",
+   "position": [
+    0,
+    1.2,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 14,
+   "visible": true,
+   "distance": 0,
+   "decay": 2,
+   "shadow": {
+    "size": 512,
+    "near": 0.25,
+    "far": 40,
+    "bias": -0.0005,
+    "normalBias": 0.04,
+    "radius": 3,
+    "intensity": 0.62
+   }
+  },
+  {
+   "name": "lamp-sofa-light",
+   "type": "PointLight",
+   "parent": "lamp-sofa",
+   "position": [
+    0,
+    1.3,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 22,
+   "visible": true,
+   "distance": 0,
+   "decay": 2,
+   "shadow": {
+    "size": 512,
+    "near": 0.25,
+    "far": 40,
+    "bias": -0.0005,
+    "normalBias": 0.04,
+    "radius": 3,
+    "intensity": 0.62
+   }
+  },
+  {
+   "name": "lamp-laundry-light",
+   "type": "PointLight",
+   "parent": "lamp-laundry-swing",
+   "position": [
+    0,
+    -1.36,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 26,
+   "visible": true,
+   "distance": 16,
+   "decay": 2,
+   "shadow": {
+    "size": 256,
+    "near": 0.25,
+    "far": 40,
+    "bias": -0.0005,
+    "normalBias": 0.04,
+    "radius": 3,
+    "intensity": 0.62
+   }
+  },
+  {
+   "name": "lamp-pantry-light",
+   "type": "PointLight",
+   "parent": "lamp-pantry",
+   "position": [
+    0,
+    -0.111,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 30,
+   "visible": true,
+   "distance": 14,
+   "decay": 2,
+   "shadow": {
+    "size": 256,
+    "near": 0.25,
+    "far": 14,
+    "bias": -0.0005,
+    "normalBias": 0.04,
+    "radius": 3,
+    "intensity": 0.62
+   }
+  },
+  {
+   "name": "lamp-toilet-light",
+   "type": "SpotLight",
+   "parent": "lamp-toilet",
+   "position": [
+    0,
+    -0.011,
+    0
+   ],
+   "color": "#ffdcae",
+   "intensity": 70,
+   "visible": true,
+   "distance": 9,
+   "decay": 2,
+   "angle": 0.36,
+   "penumbra": 0.5,
+   "target": [
+    0,
+    -7.761,
+    0
+   ]
+  },
+  {
+   "name": "lamp-bathroom-light",
+   "type": "PointLight",
+   "parent": "lamp-bathroom",
+   "position": [
+    0,
+    -0.11,
+    -0.58
+   ],
+   "color": "#ffdcae",
+   "intensity": 24,
+   "visible": true,
+   "distance": 0,
+   "decay": 2,
+   "shadow": {
+    "size": 512,
+    "near": 0.25,
+    "far": 40,
+    "bias": -0.0005,
+    "normalBias": 0.04,
+    "radius": 3,
+    "intensity": 0.62
+   }
+  },
+  {
+   "name": "lamp-patio-light",
+   "type": "SpotLight",
+   "parent": "lamp-patio",
+   "position": [
+    0,
+    0.175,
+    -0.55
+   ],
+   "color": "#ffdcae",
+   "intensity": 60,
+   "visible": true,
+   "distance": 30,
+   "decay": 2,
+   "angle": 0.75,
+   "penumbra": 0.6,
+   "target": [
+    0,
+    -9.125,
+    -9.3
+   ]
+  }
+ ]
+}

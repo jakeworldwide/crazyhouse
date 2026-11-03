@@ -41,11 +41,15 @@
 // where something belongs (remembered the first time a craziness moves it)
 const homeOf = obj => obj.userData.home ||= { p: obj.position.clone(), r: obj.rotation.y };
 
-// turn something by `angle` round the point (x, z) and move it by (dx, dz) feet, from where it belongs
+// turn something by `angle` round the point (x, z) and move it by (dx, dz) feet (in the world), from where it belongs
+// (each model sits in its own placement in the level, so the point is worked out in that frame)
 function turnAbout(obj, x, z, angle, dx = 0, dz = 0) {
-  const { p, r } = homeOf(obj), c = Math.cos(angle), s = Math.sin(angle), ox = p.x - x, oz = p.z - z;
+  const { p, r } = homeOf(obj), toLocal = obj.parent.matrixWorld.clone().invert();
+  const pivot = obj.position.clone().set(x, 0, z).applyMatrix4(toLocal);
+  const shift = obj.position.clone().set(x + dx, 0, z + dz).applyMatrix4(toLocal).sub(pivot);
+  const c = Math.cos(angle), s = Math.sin(angle), ox = p.x - pivot.x, oz = p.z - pivot.z;
   obj.rotation.y = r + angle;
-  obj.position.set(x + c * ox + s * oz + dx, p.y, z - s * ox + c * oz + dz);
+  obj.position.set(pivot.x + c * ox + s * oz + shift.x, p.y, pivot.z - s * ox + c * oz + shift.z);
 }
 
 /* something sliding or turning to a new spot over `seconds` (so if you're
@@ -410,8 +414,14 @@ export const CRAZINESS = [
     name: 'craziness17', cam: 'front yard', intensity: 1, observable: 1, at: [50, 764],
     note: 'The rocking chair turns round to face the cam.',
     ...moves(4, (ctx, p) => {
-      const ch = ctx.find('rocking-chair'), { p: home, r } = homeOf(ch), c = ctx.cam('front yard').pos;
-      let turn = Math.atan2(c[0] - home.x, c[2] - home.z) - r;
+      const ch = ctx.find('rocking-chair'), c = ctx.cam('front yard').pos;
+      // where it sits and which way it faces, in the world, when it's where it belongs
+      const home = ch.userData.worldHome ||= (() => {
+        homeOf(ch);
+        const at = ch.getWorldPosition(new ctx.THREE.Vector3()), ahead = ch.localToWorld(new ctx.THREE.Vector3(0, 0, 1)).sub(at);
+        return { x: at.x, z: at.z, yaw: Math.atan2(ahead.x, ahead.z) };
+      })();
+      let turn = Math.atan2(c[0] - home.x, c[2] - home.z) - home.yaw;
       turn = Math.atan2(Math.sin(turn), Math.cos(turn));
       turnAbout(ch, home.x, home.z, turn * p);
     })

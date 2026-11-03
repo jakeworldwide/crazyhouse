@@ -56,9 +56,19 @@ him on the cams and fire the EMP while you're watching his room.
 - `cams.js` is the list of cams: name, position in feet, what it looks
   at, zoom (inside cams are 80°)
 - `main.js` runs the game: renderer, input, the clock, shadows
-- `world.js` builds the house, the furniture, the yard and the lights,
-  and has `ROOMS`: which part of the house is which room, and which cam
-  covers it
+- `models/` is every thing in the house as its own model file (.glb),
+  in a folder per room; `house.json` is the level (see How the house is
+  put together)
+- `house.js` builds the house from `models/` and `house.json`
+- `components.js` is the behaviour that goes on the models: doors and
+  lids opening, the fire's flicker, the swaying bulb, the mirror, glows,
+  the paintings
+- `world.js` is the code the models were first made from (the house's
+  "source"), plus the rules of the place: `ROOMS` (which part of the
+  house is which room, and which cam covers it), where you can walk, the
+  light switches, the look-at text
+- `tools/export-house.html` turns `world.js` into `models/` and
+  `house.json` (with `tools/save-server.py`)
 - `ghoul.js` is ghoul1: his body, his walking loop, his stare, and when
   he fades in and out
 - `ghost.js` draws him blurred and faded over the frame
@@ -70,6 +80,52 @@ him on the cams and fire the EMP while you're watching his room.
 - `check-route.mjs` tests his walking loop for clipping (see below)
 - `vendor/three-r186/` is Three.js, the 3D library, saved here so the
   game doesn't depend on anything else
+
+## How the house is put together
+
+Like a real game: the things are model files, a level says where they
+go, and code says what they do.
+
+- **Models** (`models/<room>/<thing>.glb`): one file per thing, 188 of
+  them. The sofa, the fridge, each painting, each wall, the van, the
+  pines, the little clutter props (named after what they are). Each is
+  in its own space: its origin is at the bottom middle of it, or at its
+  hinge if it opens. Things that open carry an animation called after
+  the part ("door-front", "fridge-door"), one second from shut to open.
+  Anything the format can't hold (a material drawn inside out, which
+  layer glass goes on, what a thing says when you look at it, which
+  behaviour it has) is in its glTF "extras". .glb is glTF, so Blender,
+  Godot, Unity and Unreal all open them.
+- **Level** (`house.json`): every model's file, where it goes (position,
+  rotation, scale in feet), which room or kind of thing it's grouped
+  under, and every light (where it hangs, its colour, strength, reach,
+  and its shadow settings).
+- **Behaviour** (`components.js`): what a model's extras ask for
+  (`component: { type: 'fire' }`), wired up when the house loads: the
+  doors' openings, the fire, the fridge light, the laundry bulb, the
+  mirror, glows, and the paintings (packed onto one picture sheet as the
+  house loads, so they draw together, and repaintable by crazinesses).
+  The sky (moon, stars, clouds) is code too, like an engine's skybox.
+- **Rules** (`world.js`): which room is where, where you can walk, the
+  light switches, the look-at text, and finishing the loaded house off
+  (shadows, and joining things into fewer, bigger draws, so it runs the
+  same as before).
+
+**Changing a model**: open its .glb in Blender (File > Import > glTF),
+edit it, and export it back over the same file (File > Export > glTF
+2.0, glTF Binary). Keep its origin where it was. **Moving a thing**: its
+`position` in `house.json`. **Adding a thing**: drop its .glb in
+`models/` and add a line to `house.json` (copy one that's close).
+
+**Making the models again from `world.js`**: run
+`python3 tools/save-server.py`, open `tools/export-house.html` from the
+local server, and it rewrites `models/` and `house.json`. That would
+undo any edits made in Blender, so once you've started editing models,
+only redo the ones you name: `tools/export-house.html?only=sofa,fridge`.
+
+Moving to another engine means keeping `models/` and `house.json` as
+they are, and rewriting the code (`house.js`, `components.js` and the
+game itself) for that engine.
 
 ## The house
 

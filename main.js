@@ -4,11 +4,12 @@
    ============================================================ */
 
 import * as THREE from './vendor/three-r186/three.module.js';
-import { buildWorld, ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed, shoePair } from './world.js?v=53';
+import { ROOMS, roomAt, X, Z, FLOOR, walkHeight, GLASS_LAYER, CULL_LAYER, captureReflections, shadowed, shoePair } from './world.js?v=54';
+import { loadHouse } from './house.js?v=5';
 import { buildPVS } from './pvs.js?v=3';
-import { createEmp } from './emp.js?v=15';
-import { CAMS, camAt } from './cams.js?v=19';
-import { createGhoul } from './ghoul.js?v=21';
+import { createEmp } from './emp.js?v=16';
+import { CAMS, camAt } from './cams.js?v=20';
+import { createGhoul } from './ghoul.js?v=22';
 import { createGhostPass, GHOST_LAYER } from './ghost.js?v=4';
 import { createTv } from './tv.js?v=8';
 import { openSignalURL } from './signal-clip.js?v=7';
@@ -16,7 +17,7 @@ import { createAnalogPass } from './analog.js?v=38';
 import { createOsd } from './osd.js?v=5';
 import { createSounds } from './sound.js?v=5';
 import { createCraziness, WARNING, OVERLOAD } from './craziness.js?v=5';
-import { CRAZINESS } from './craziness-list.js?v=12';
+import { CRAZINESS } from './craziness-list.js?v=13';
 
 
 const $ = id => document.getElementById(id);
@@ -282,6 +283,7 @@ function initGL() {
   fit();
   if (new URLSearchParams(location.search).has('debug')) window.crazyhouse = { renderer, analog };   // filled in properly on START
   renderer.setAnimationLoop(loop);
+  startLoading();
   return true;
 }
 
@@ -297,8 +299,12 @@ function fit() {
 
 /* ─── setup (runs once, on the first START) ─── */
 
-function setup() {
-  scene = buildWorld();
+// the house: its model files and level (house.js), loading from the moment the page opens
+let houseLoading = null;
+const startLoading = () => houseLoading ||= loadHouse();
+
+async function setup() {
+  scene = await startLoading();
   const worldRoots = [...scene.children];      // the house and yard (ghoul1 and the EMP come later)
   lamps = scene.userData.lamps;
   tv = createTv(shadowed);
@@ -372,7 +378,7 @@ function setup() {
       isNight: () => night, camIndex: () => camIndex
     };
     window.crazyhouse = api;
-    import('./debug.js?v=36').then(m => m.createDebug(api));
+    import('./debug.js?v=37').then(m => m.createDebug(api));
   }
 
   return true;
@@ -795,11 +801,18 @@ $('quitBt').addEventListener('click', e => { e.currentTarget.blur(); quit(); });
 
 /* ─── start / quit ──────────────────────────── */
 
-function start() {
-  if (state === 'playing') return;
+let settingUp = null;
+async function start() {
+  if (state === 'playing' || settingUp) return;
   if (!renderer) return;
   sounds.unlock();                            // (sound is only allowed after a click or key)
-  if (!scene) setup();
+  if (!scene) {
+    startBt.textContent = 'LOADING';
+    settingUp = setup();
+    await settingUp;
+    settingUp = null;
+    startBt.textContent = 'START';
+  }
   state = 'playing';
   tv.play();
   resetShift();
